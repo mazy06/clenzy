@@ -52,6 +52,9 @@ public class TokenEncryptionService {
     private final Map<Integer, SecretKey> keyRing = new ConcurrentHashMap<>();
     private final AES256TextEncryptor legacyEncryptor;
     private final SecureRandom secureRandom = new SecureRandom();
+    private com.clenzy.util.BaitlySecretValueCodec fieldCodec;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void configureFieldReader(com.clenzy.util.BaitlySecretValueCodec codec) { fieldCodec=codec; }
 
     public TokenEncryptionService(
             @Value("${jasypt.encryptor.password}") String encryptorPassword,
@@ -123,6 +126,10 @@ public class TokenEncryptionService {
         }
 
         try {
+            if(com.clenzy.util.BaitlyFieldCipher.isAuthenticated(encryptedToken)) {
+                if(fieldCodec==null) throw new IllegalStateException("Baitly field reader unavailable");
+                return fieldCodec.decrypt(encryptedToken);
+            }
             // Format versioned: "GCMv2:base64..."
             if (encryptedToken.startsWith(GCM_VERSIONED_PREFIX)) {
                 int colonIdx = encryptedToken.indexOf(':');

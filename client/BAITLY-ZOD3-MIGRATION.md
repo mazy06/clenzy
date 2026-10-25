@@ -1,5 +1,9 @@
 # Migration dédiée Zod 3 : contrats assistant Baitly
 
+État suivant : [vague technique regroupée](BAITLY-FINAL-TECHNICAL-WAVE.md), qui
+intègre le chat natif et retire les SDK. Le présent document décrit la phase
+historique antérieure ; ses limites ne sont pas toutes le statut courant.
+
 État au 24 octobre 2026 : **préparation et caractérisation**, pas de bascule.
 Les douze avis élevés restent ouverts. La référence #516 conservait les
 lockfiles et imports de production de #515 ; les changements du candidat

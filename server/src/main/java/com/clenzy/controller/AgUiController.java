@@ -246,7 +246,8 @@ public class AgUiController {
                 if(durableRequested) {
                     String completionPolicy=nodeText(forwarded,"completionPolicy");
                     if(completionExecutor==null || !java.util.Set.of(com.clenzy.service.agent.BaitlyChatCompletionJournal.POLICY,
-                            com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY).contains(completionPolicy))
+                            com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY,
+                            com.clenzy.service.agent.BaitlyChatCompletionJournal.WRITES_POLICY).contains(completionPolicy))
                         throw new IllegalArgumentException("Baitly chat completion unavailable");
                     if((resumeRoot!=null && !resumeRoot.isNull() && (!resumeRoot.isArray() || resumeRoot.size()!=1))
                             || forwarded.hasNonNull("resume")) throw new IllegalArgumentException("Baitly chat completion unavailable");
@@ -258,7 +259,10 @@ public class AgUiController {
                             || (resumeRoot!=null && resumeRoot.isArray() && resumeRoot.size()!=1))) {
                         throw new IllegalArgumentException("Baitly chat completion unavailable");
                     }
-                    if(com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY.equals(completionPolicy)) {
+                    if(com.clenzy.service.agent.BaitlyChatCompletionJournal.WRITES_POLICY.equals(completionPolicy)) {
+                        completionExecutor.executeWithWrites(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                            pendingId,work,consumer);
+                    } else if(com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY.equals(completionPolicy)) {
                         completionExecutor.executeWithTools(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
                             pendingId,work,consumer);
                     } else completionExecutor.execute(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,

@@ -9,13 +9,14 @@ export interface BaitlyAgUiClientOptions {
   getHeaders: () => Record<string, string>;
   /** Candidate limit to calibrate against real tool output before activation. */
   maxFrameBytes: number;
+  beforeSend?:()=>Promise<void>;
 }
 export type BaitlyAgUiState = 'idle' | 'running' | 'awaiting_decision' | 'uncertain';
 
 /**
- * Inactive candidate. Only validates/emits protocol events; it never executes
+ * Native transport. Only validates/emits protocol events; it never executes
  * tools, retries a request, stores tokens or enables a second live engine.
- * Not a drop-in implementation of the complete CopilotKit React SDK.
+ * Presentation, recovery and decisions are owned by the Baitly adapter.
  */
 export class BaitlyAgUiClient {
   private controller: AbortController | null = null;
@@ -62,6 +63,8 @@ export class BaitlyAgUiClient {
     const threadId = input.threadId;
     let sent = false;
     try {
+      await this.options.beforeSend?.();
+      if(controller.signal.aborted) throw new BaitlyAgUiError('ABORTED');
       const headers = { ...this.options.getHeaders(), 'Content-Type': 'application/json', Accept: 'text/event-stream' };
       const body = JSON.stringify(input); // Preserve extension fields and message history.
       sent = true;
@@ -80,6 +83,7 @@ export class BaitlyAgUiClient {
         throw new BaitlyAgUiError('INVALID_STREAM');
       }
       let serverRunId: string | null = null;
+      const startedTools=new Set<string>();
       for await (const data of baitlySseFrames(response.body, this.options.maxFrameBytes)) {
         let raw: unknown;
         try { raw = JSON.parse(data); } catch { throw new BaitlyAgUiError('INVALID_STREAM'); }
@@ -97,6 +101,10 @@ export class BaitlyAgUiClient {
           throw new BaitlyAgUiError('PROTOCOL');
         }
         if (event.type === 'RUN_ERROR') throw new BaitlyAgUiError('REMOTE_RUN');
+        if(event.type==='TOOL_CALL_START') {
+          if(startedTools.has(event.toolCallId)) throw new BaitlyAgUiError('PROTOCOL');
+          startedTools.add(event.toolCallId);
+        }
         try { await onEvent(event); } catch { throw new BaitlyAgUiError('CONSUMER'); }
         if (event.type === 'RUN_FINISHED') {
           this.pending = event.outcome.type === 'interrupt'

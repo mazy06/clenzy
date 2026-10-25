@@ -69,8 +69,8 @@ class BaitlyChatCompletionSqlTest {
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream().filter(c->Set.of("0607-baitly-chat-turn-receipts",
                     "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs","0610-baitly-chat-write-business-proofs",
-                    "0611-baitly-chat-complete-write-turns").contains(c.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(5);
+                    "0611-baitly-chat-complete-write-turns","0612-baitly-chat-continuations").contains(c.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(6);
                 new Liquibase(selected,resources,database).update("");
             }
         }
@@ -706,8 +706,11 @@ class BaitlyChatCompletionSqlTest {
             new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
         return (T)proxy.getProxy();
     }
-    private void completeWriteTurn(String kind,String variant,boolean resumed) {
+    private ToolHandler activeWriteHandler;
+    private void completeWriteTurn(String kind,String variant,boolean resumed) { completeWriteTurn(kind,variant,resumed,false); }
+    private void completeWriteTurn(String kind,String variant,boolean resumed,boolean v3) {
         var handler=writeHandler(kind,"rollback".equals(variant)?"rollback":"success");
+        activeWriteHandler=handler;
 
         var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
         var loop=new AgentToolLoopRunner(mock(ChatLLMProvider.class),new ToolRegistry(List.of(handler)),
@@ -726,18 +729,24 @@ class BaitlyChatCompletionSqlTest {
             jdbc.update("UPDATE agent_pending_action SET args_json=?",args);
             BaitlyChatTurnObservation.toolsRequested();
         };
-        if(resumed) executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+        if(resumed) executeWriteRecipe(v3,null,out->{
             request.accept(out); out.accept(AgentSseEvent.pausedAwaitingConfirmation()); return 9L;
-        },e->{});
-        executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,resumed?"write-call":null,out->{
+        });
+        executeWriteRecipe(v3,resumed?"write-call":null,out->{
             if(!resumed) request.accept(out);
             jdbc.update("UPDATE agent_pending_action SET status='CONFIRMED',resolved_at=?",Timestamp.from(Instant.now().minusSeconds(1)));
-            var result=loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user"));
+            if("declined".equals(variant)) jdbc.update("UPDATE agent_pending_action SET status='REFUSED'");
+            var result="declined".equals(variant)?ToolResult.error("Synthetic refusal"):loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user"));
             if("crash".equals(variant)) throw new IllegalStateException("synthetic-private-crash");
             out.accept(AgentSseEvent.toolCallExecuted(handler.name(),"write-call",result.isError(),null,null));
             long id=message("tool",result.content(),null);
             jdbc.update("UPDATE assistant_message SET tool_call_id='write-call' WHERE id=?",id);
-            BaitlyChatTurnObservation.toolPersisted("write-call",id,result.isError());
+            if("declined".equals(variant)) BaitlyChatTurnObservation.declinedPersisted("write-call",id);
+            else BaitlyChatTurnObservation.toolPersisted("write-call",id,result.isError());
+            if("pause-after-write".equals(variant)) {
+                addWritePause("second",handler.name(),args);
+                out.accept(AgentSseEvent.pausedAwaitingConfirmation()); return 9L;
+            }
             long last=message("assistant","Synthetic final answer","stop");
             if(!"missing-hook".equals(variant)) BaitlyChatTurnObservation.textPersisted(last,"stop");
             switch(variant) {
@@ -761,7 +770,99 @@ class BaitlyChatCompletionSqlTest {
             out.accept(AgentSseEvent.done("stop"));
             if("duplicate-done".equals(variant)) out.accept(AgentSseEvent.done("stop"));
             return 9L;
-        },e->{});
+        });
+    }
+    private void executeWriteRecipe(boolean v3,String pending,java.util.function.Function<java.util.function.Consumer<AgentSseEvent>,Long> work) {
+        if(v3) executor.executeWithWrites(UUID.randomUUID(),7L,"recipe-user",9L,pending,work,e->{});
+        else executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,pending,work,e->{});
+    }
+    private void addWritePause(String call,String name,String args) {
+        try {
+            long id=message("assistant",null,"tool_use");
+            String json=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(List.of(new ChatMessage.ToolCall(call,name,args)));
+            jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")+" WHERE id=?",json,id);
+            jdbc.update("""
+                INSERT INTO agent_pending_action (organization_id,keycloak_user_id,conversation_id,tool_call_id,status,expires_at,tool_name,args_json)
+                VALUES (7,'recipe-user',9,?,'PENDING',?,?,?)
+                """,call,Timestamp.from(Instant.now().plusSeconds(600)),name,args);
+            BaitlyChatTurnObservation.toolsRequested();
+        } catch(Exception failure) { throw new IllegalStateException("Synthetic pause unavailable"); }
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void v3CompletedWritesAllowOnlyTheNextExplicitNewTurnAndNeverReplayTheDecision(String kind) {
+        completeWriteTurn(kind,"success",true,true);
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_WRITES");
+        assertThatThrownBy(()->journal.beginWithWrites(7L,"recipe-user",9L,UUID.randomUUID(),"write-call"))
+            .hasMessage("Baitly chat completion unavailable");
+        executeWriteRecipe(true,null,out->{
+            message("user","Explicit next question",null);long last=message("assistant","Next answer","stop");
+            BaitlyChatTurnObservation.textPersisted(last,"stop");out.accept(AgentSseEvent.done("stop"));return 9L;
+        });
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_WRITES");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_chat_write_business_proofs",Integer.class)).isEqualTo(1);
+    }
+    @Test void v3RefusalHasDurableNoExecutionProofAndCanCompleteWithoutMutatingTheResource() {
+        completeWriteTurn("property","declined",true,true);
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_WRITES");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT status FROM properties WHERE id=11",String.class)).isEqualTo("ACTIVE");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_chat_tool_evidence",Integer.class)).isZero();
+        assertThatThrownBy(()->journal.beginWithWrites(7L,"recipe-user",9L,UUID.randomUUID(),"write-call"))
+            .hasMessage("Baitly chat completion unavailable");
+        jdbc.update("DELETE FROM baitly_chat_declined_results");
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+    }
+    @Test void v3PauseAfterCommittedEffectResumesOnlyTheNewDecisionAndPreservesEarlierEffects() {
+        completeWriteTurn("property","pause-after-write",true,true);
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("PAUSED");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).hasSize(1);
+        executeWriteRecipe(true,"second",out->{
+            jdbc.update("UPDATE agent_pending_action SET status='REFUSED',resolved_at=? WHERE tool_call_id='second'",Timestamp.from(Instant.now()));
+            out.accept(AgentSseEvent.toolCallExecuted(activeWriteHandler.name(),"second",true,null,null));
+            long result=toolMessage("second");BaitlyChatTurnObservation.declinedPersisted("second",result);
+            long last=message("assistant","Final answer after two pauses","stop");
+            BaitlyChatTurnObservation.textPersisted(last,"stop");out.accept(AgentSseEvent.done("stop"));return 9L;
+        });
+        var reboot=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
+        assertThat(reboot.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_WRITES");
+        assertThat(reboot.writeEvidence(7L,"recipe-user",9L)).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_chat_continuations",Integer.class)).isEqualTo(3);
+    }
+    @ParameterizedTest @ValueSource(strings={"missing-proof","missing-result","duplicate-result","decision-pending","decision-refused",
+        "decision-foreign","decision-late","decision-multi","decision-name","args-changed","blank-final","extra-event","error-event","multi-agent","missing-hook","duplicate-done","rollback"})
+    void v3NeverReopensIncompleteOrAmbiguousEffects(String variant) {
+        completeWriteTurn("property",variant,true,true);
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+        assertThatThrownBy(()->journal.beginWithWrites(7L,"recipe-user",9L,UUID.randomUUID(),null)).hasMessage("Baitly chat completion unavailable");
+        assertThatThrownBy(()->journal.beginWithWrites(7L,"recipe-user",9L,UUID.randomUUID(),"write-call")).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void v3DoesNotImportLegacyOrUncertifiedConversations() {
+        textTurn(UUID.randomUUID());
+        assertThatThrownBy(()->journal.beginWithWrites(7L,"recipe-user",9L,UUID.randomUUID(),null)).hasMessage("Baitly chat completion unavailable");
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={true,false})
+    void v3LocalReadRequiresItsConcreteReviewedImplementation(boolean concrete) {
+        var service=mock(com.clenzy.service.PropertyService.class);
+        when(service.search(any(),any(),any(),any(),any())).thenReturn(org.springframework.data.domain.Page.empty());
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var real=new com.clenzy.service.agent.tools.ListPropertiesTool(service,mapper);
+        ToolHandler handler=concrete?real:new ToolHandler(){
+            public String name(){return real.name();}public com.clenzy.config.ai.ToolDescriptor descriptor(){return real.descriptor();}
+            public ToolResult execute(com.fasterxml.jackson.databind.JsonNode args,AgentContext context){return real.execute(args,context);}
+        };
+        executeWriteRecipe(true,null,out->{
+            message("user","Synthetic property list",null);long request=message("assistant",null,"tool_use");
+            jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")+" WHERE id=?",
+                "[{\"id\":\"list-call\",\"name\":\"list_properties\",\"arguments\":\"{}\"}]",request);
+            BaitlyChatTurnObservation.toolStarted("list-call",handler,AgentContext.minimal(7L,"recipe-user"),9L);
+            var result=handler.execute(mapper.createObjectNode(),AgentContext.minimal(7L,"recipe-user"));
+            out.accept(AgentSseEvent.toolCallExecuted(handler.name(),"list-call",result.isError(),result.displayHint(),result.content()));
+            long id=toolMessage("list-call");BaitlyChatTurnObservation.toolPersisted("list-call",id,result.isError());
+            long last=message("assistant","Synthetic final list answer","stop");BaitlyChatTurnObservation.textPersisted(last,"stop");
+            out.accept(AgentSseEvent.done("stop"));return 9L;
+        });
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo(concrete?"SAFE_WRITES":"UNCERTAIN");
     }
     @ParameterizedTest @ValueSource(strings={"property","memory"})
     void completeConfirmedResumeHasDurableRevalidatedTurnEvidenceWithoutReopeningAdmission(String kind) throws Exception {

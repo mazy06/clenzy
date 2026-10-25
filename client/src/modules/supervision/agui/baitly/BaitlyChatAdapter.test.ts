@@ -48,7 +48,7 @@ describe('Baitly chat adapter restoration', () => {
     fetch.mockImplementationOnce(async(_url,init)=>{
       const input=JSON.parse(String(init.body));
       expect(input.messages).toEqual([expect.objectContaining({role:'user',content:'Next explicit question'})]);
-      expect(input.forwardedProps.completionPolicy).toBe('durable-tools-v2');
+      expect(input.forwardedProps.completionPolicy).toBe('durable-writes-v3');
       proof={...proof,history:[...proof.history,
         {id:'history-5',role:'user',content:'Next explicit question',toolCallId:null,hasAttachments:false},
         {id:'history-6',role:'assistant',content:'New answer',toolCallId:null,hasAttachments:false}],
@@ -94,7 +94,7 @@ describe('Baitly chat adapter restoration', () => {
     await adapter.restore(); expect(adapter.getSnapshot().phase).toBe('ready'); expect(fetch).not.toHaveBeenCalled();
     fetch.mockImplementationOnce(async(_url,init)=>{
       const input=JSON.parse(String(init.body));
-      expect(input.forwardedProps.completionPolicy).toBe('durable-tools-v2');
+      expect(input.forwardedProps.completionPolicy).toBe('durable-writes-v3');
       expect(input.messages).toHaveLength(1); // Restored messages are never replayed.
       proof={...proof,history:[...proof.history,
         {id:'history-3',role:'user',content:'Next synthetic question',toolCallId:null,hasAttachments:false},

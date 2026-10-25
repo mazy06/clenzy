@@ -23,9 +23,10 @@ export const emptyChat = (): ChatModel => ({ items: [], messages: [], state: {} 
 
 /** Server history is presentation, never an outgoing request or executable tool call. */
 export function restoreBaitlyHistory(history: Array<{ id: string; role: 'user' | 'assistant' | 'tool';
-  content: string | null; hasAttachments: boolean }>): ChatModel {
+  content: string | null; hasAttachments: boolean; presentation?:string|null }>): ChatModel {
   return { items: history.map(entry => ({ id: entry.id, kind: entry.role, text: entry.content ?? '',
-    complete: true, historical: true, hasAttachments: entry.hasAttachments })), messages: [], state: {} };
+    complete: true, historical: true, hasAttachments: entry.hasAttachments,
+    ...(entry.role==='tool' && entry.presentation?{result:entry.presentation}:{}) })), messages: [], state: {} };
 }
 
 /** Immutable presentation reduction, never executes tools or applies navigation. */
@@ -53,8 +54,10 @@ export function reduceBaitlyChat(model: ChatModel, event: BaitlyAgUiEvent): Chat
       break;
     }
     case 'TOOL_CALL_START': {
-      if (items.some(i => i.id === event.toolCallId)) throw new BaitlyAgUiError('PROTOCOL');
-      items.push({ id: event.toolCallId, kind: 'tool', toolName: event.toolCallName, text: '', complete: false });
+      const pending=items.find(i=>i.id===event.toolCallId);
+      if(pending && (pending.kind!=='tool' || pending.complete || pending.toolName!==event.toolCallName)) throw new BaitlyAgUiError('PROTOCOL');
+      if(!pending) items.push({ id: event.toolCallId, kind: 'tool', toolName: event.toolCallName, text: '', complete: false });
+      if(messages.some(m=>m.toolCalls?.some(call=>call.id===event.toolCallId))) break;
       const parentId = event.parentMessageId ?? `tool-message-${event.toolCallId}`;
       let parent = messages.find(m => m.id === parentId && m.role === 'assistant');
       if (!parent) { parent = { id: parentId, role: 'assistant', content: '' }; messages.push(parent); }

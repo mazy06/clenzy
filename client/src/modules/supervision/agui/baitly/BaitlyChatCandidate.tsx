@@ -8,12 +8,15 @@ import { ToolResultRenderer, TOOL_DISPLAY_HINTS, type RenderContext } from '../r
 import { PendingHint } from '../renderers/shared';
 import type { BaitlyChatAdapter } from './BaitlyChatAdapter';
 
-/** Inactive candidate view. Existing spike/route remains on its original SDK. */
+/** Native Baitly view; restoring never posts or replays an effect. */
 export function BaitlyChatCandidate({ adapter, onNavigate }: { adapter: BaitlyChatAdapter; onNavigate?: RenderContext['onNavigate'] }) {
   const { t } = useTranslation();
   const snapshot = useSyncExternalStore(adapter.subscribe, adapter.getSnapshot, adapter.getSnapshot);
   const [draft, setDraft] = useState(''); // Volatile composer, never persisted or replayed.
   const id = useId();
+  const navigate:RenderContext['onNavigate']=path=>{
+    if(/^\/(?!\/)[^\\\u0000-\u001f]*$/.test(path)) onNavigate?.(path);
+  };
   useEffect(() => { void adapter.restore(); return () => adapter.stop(); }, [adapter]);
   const send = () => {
     const text = draft;
@@ -26,10 +29,10 @@ export function BaitlyChatCandidate({ adapter, onNavigate }: { adapter: BaitlyCh
     {snapshot.phase === 'blocked' && <Alert><AlertDescription>{t('baitlyChatCandidate.blocked')}</AlertDescription></Alert>}
     <ol className="m-0 flex list-none flex-col gap-3 p-0" aria-label={t('baitlyChatCandidate.messages')}>
       {snapshot.model.items.map(item => <li key={item.id} className="min-w-0 break-words">
-        {item.kind === 'tool' && item.historical
+        {item.kind === 'tool' && item.historical && !item.result
           ? <p className="text-sm text-muted-foreground">{t('baitlyChatCandidate.recordedTool')}</p>
           : item.kind === 'tool' ? item.complete
-          ? <ToolResultRenderer result={item.result} hintFallback={item.toolName ? TOOL_DISPLAY_HINTS[item.toolName] : null} ctx={{ onNavigate }} />
+          ? <ToolResultRenderer result={item.result} hintFallback={item.toolName ? TOOL_DISPLAY_HINTS[item.toolName] : null} ctx={{ onNavigate:navigate }} />
           : <PendingHint label={t('supervision.agui.pending.default')} />
           : <><span className="text-xs font-medium text-muted-foreground">{t(item.kind === 'user' ? 'baitlyChatCandidate.you' : 'baitlyChatCandidate.assistant')}</span>
             <div className="max-w-prose text-sm"><ReactMarkdown skipHtml components={{ img: ({ alt }) => <span>{alt}</span> }}>{item.text}</ReactMarkdown></div></>}

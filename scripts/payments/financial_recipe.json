@@ -1,5 +1,12 @@
 {
   "backend": [
+    "BaitlyNativeWireContractTest",
+    "BaitlySecretConfidentialityTest",
+    "BaitlyAuthenticatedFieldTest",
+    "BaitlyFieldRotationTest",
+    "SecretColumnEncryptionBackfillTest",
+    "EncryptedFieldConverterTest",
+    "TokenEncryptionServiceTest",
     "BaitlyChatCompletionSqlTest",
     "AssistantMemoryServiceTest",
     "PropertyServiceTest",

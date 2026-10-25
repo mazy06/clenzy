@@ -25,8 +25,16 @@ public class BaitlyChatTurnExecutor {
                         Function<Consumer<AgentSseEvent>,Long> work, Consumer<AgentSseEvent> downstream) {
         return execute(request,organization,user,conversation,pendingId,work,downstream,true);
     }
+    public Long executeWithWrites(UUID request,Long organization,String user,Long conversation,String pendingId,
+                        Function<Consumer<AgentSseEvent>,Long> work,Consumer<AgentSseEvent> downstream) {
+        return execute(request,organization,user,conversation,pendingId,work,downstream,true,true);
+    }
     private Long execute(UUID request, Long organization, String user, Long conversation, String pendingId,
                         Function<Consumer<AgentSseEvent>,Long> work, Consumer<AgentSseEvent> downstream,boolean toolsPolicy) {
+        return execute(request,organization,user,conversation,pendingId,work,downstream,toolsPolicy,false);
+    }
+    private Long execute(UUID request,Long organization,String user,Long conversation,String pendingId,
+                        Function<Consumer<AgentSseEvent>,Long> work,Consumer<AgentSseEvent> downstream,boolean toolsPolicy,boolean writesPolicy) {
         if(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) throw unavailable();
         var ticket=new AtomicReference<BaitlyChatCompletionJournal.Ticket>();
         try (var observation=BaitlyChatTurnObservation.open()) {
@@ -36,14 +44,14 @@ public class BaitlyChatTurnExecutor {
                 if(target!=null && !target.equals(owned)) throw unavailable();
                 target=owned;
             }
-            if(target!=null) ticket.set(toolsPolicy?journal.begin(organization,user,target,request,pendingId,true):
+            if(target!=null) ticket.set(writesPolicy?journal.beginWithWrites(organization,user,target,request,pendingId):toolsPolicy?journal.begin(organization,user,target,request,pendingId,true):
                 journal.begin(organization,user,target,request,pendingId));
             if(ticket.get()!=null) observation.bind(journal,ticket.get());
             var terminal=new ArrayList<AgentSseEvent>();
             Long result=work.apply(event -> {
                 if("conversation_created".equals(event.type())) {
                     if(ticket.get()!=null || event.conversationId()==null) throw unavailable();
-                    ticket.set(toolsPolicy?journal.begin(organization,user,event.conversationId(),request,pendingId,true):
+                    ticket.set(writesPolicy?journal.beginWithWrites(organization,user,event.conversationId(),request,pendingId):toolsPolicy?journal.begin(organization,user,event.conversationId(),request,pendingId,true):
                         journal.begin(organization,user,event.conversationId(),request,pendingId));
                     observation.bind(journal,ticket.get());
                 }

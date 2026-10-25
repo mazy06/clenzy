@@ -44,7 +44,9 @@ public class BaitlyChatRecoveryService {
                          Instant expiresAt, boolean resumable) {}
     /** Presentation only: no tool arguments, auth or attachment URLs. */
     public record HistoryEntry(String id, String role, String content, String toolCallId,
-                               boolean hasAttachments) {}
+                               boolean hasAttachments,String presentation) {
+        public HistoryEntry(String id,String role,String content,String call,boolean files) { this(id,role,content,call,files,null); }
+    }
     public enum Evidence { AWAITING_DECISION, EXPIRED, DECLINED, RESULT_RECORDED, UNCERTAIN, CONFLICT }
     public record Reconciliation(String toolCallId, String toolName, Evidence evidence, String resultMessageId) {}
     public record Recovery(int version, String resumePolicy, Long conversationId,
@@ -103,13 +105,16 @@ public class BaitlyChatRecoveryService {
         // Empty pending alone is NOT evidence that a previous request never ran.
         // Only an untouched conversation may start without reviewing server history.
         var completion=completionJournal==null?null:completionJournal.proof(organizationId,userId,conversationId,history);
-        boolean canStart = rows.isEmpty() && ((completion!=null && List.of("SAFE_TEXT","SAFE_TOOLS").contains(completion.status()))
+        boolean canStart = (rows.isEmpty() || (completion!=null && "durable-writes-v3".equals(completion.policy()) && "SAFE_WRITES".equals(completion.status())))
+                && ((completion!=null && List.of("SAFE_TEXT","SAFE_TOOLS","SAFE_WRITES").contains(completion.status()))
                 || (completion==null && history.isEmpty()
                 && !messages.existsByOrganizationIdAndConversationId(organizationId, conversationId)
                 && !runs.existsByOrganizationIdAndConversationId(organizationId, conversationId)));
+        var names=BaitlyChatPresentation.names(history);
         var transcript = history.stream().map(m -> new HistoryEntry("history-" + m.getId(), m.getRole(),
                 "tool".equals(m.getRole()) ? null : m.getContent(), m.getToolCallId(),
-                m.getAttachments() != null && !"[]".equals(m.getAttachments()))).toList();
+                m.getAttachments() != null && !"[]".equals(m.getAttachments()),
+                "tool".equals(m.getRole())?BaitlyChatPresentation.render(names.get(m.getToolCallId()),m.getContent()):null)).toList();
         var evidence = rows.stream().map(a -> reconcile(a, results.getOrDefault(a.getToolCallId(), List.of()), now)).toList();
         var toolEvidence=completionJournal==null?List.<BaitlyChatCompletionJournal.ToolEvidence>of()
                 :completionJournal.toolEvidence(organizationId,userId,conversationId);

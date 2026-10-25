@@ -366,7 +366,13 @@ public class AgentOrchestrator {
         //    l'orchestration. SIMPLE/DIRECT → mono-agent directement (un tour
         //    multi coute 5-10x un tour mono). Doute ou erreur → MULTI
         //    (comportement historique, zero regression possible).
-        boolean multiAgentEligible = multiAgentFlowRunner.canUse(context, hasAttachments);
+        // The durable v3 transport uses the existing sequential tool runner: its
+        // invocation and business receipts are persisted on this thread. The
+        // parallel specialist engine does not yet carry that proof context.
+        // Choose before any routing/provider effect, never after a partial run.
+        // Other transports keep their existing multi-agent configuration.
+        boolean multiAgentEligible = !BaitlyChatTurnObservation.writesPolicy()
+                && multiAgentFlowRunner.canUse(context, hasAttachments);
         IntentRouter.Route route = null;
         if (multiAgentEligible && intentRouter != null && intentRouter.isEnabled()) {
             IntentRouter.RouteDecision decision = intentRouter.classify(effectiveMessage, target, apiKey);
@@ -552,6 +558,7 @@ public class AgentOrchestrator {
                 pending.toolCallId(), result.content());
         messageRepository.save(toolMsg);
         if(confirmed) BaitlyChatTurnObservation.toolPersisted(pending.toolCallId(),toolMsg.getId(),result.isError());
+        else BaitlyChatTurnObservation.declinedPersisted(pending.toolCallId(),toolMsg.getId());
 
         // ─── Branche HITL multi-agent : re-entrer dans le flow multi-agent ───
         if (pending.isMultiAgent()) {
@@ -569,8 +576,27 @@ public class AgentOrchestrator {
 
         // ─── Branche mono-agent (inchangée) ───
         // Construire le ChatRequest a partir de l'historique stocke + tool result
-        List<ChatMessage> messages = new ArrayList<>(pending.pendingHistory());
-        messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
+        List<ChatMessage> messages;
+        if(BaitlyChatTurnObservation.writesPolicy()) {
+            var remaining=pendingToolStore.remainingBatch(pending);
+            if(!remaining.isEmpty()) {
+                for(var next:remaining) consumer.accept(AgentSseEvent.toolConfirmationRequest(
+                    next.toolName(),next.toolCallId(),next.argsJson(),next.toolName()));
+                consumer.accept(AgentSseEvent.pausedAwaitingConfirmation());
+                if(agentRunRecorder!=null) agentRunRecorder.finishRun(null);
+                if(runCreditGuard!=null) runCreditGuard.endRun();
+                return conversation.getId();
+            }
+            var persisted=messageRepository.findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(context.organizationId(),conversation.getId());
+            for(var call:pending.pendingHistory().getLast().toolCalls()) {
+                long matches=persisted.stream().filter(m->"tool".equals(m.getRole()) && call.id().equals(m.getToolCallId())).count();
+                if(matches!=1) throw new IllegalStateException("Baitly pending batch unavailable");
+            }
+            messages=historyMapper.toChatMessages(persisted,conversation.getRollingSummary());
+        } else {
+            messages=new ArrayList<>(pending.pendingHistory());
+            messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
+        }
 
         ComposedSystemPrompt resumeSystem = promptComposer.buildSegmentedSystemPrompt(context);
         ResolvedTarget target =

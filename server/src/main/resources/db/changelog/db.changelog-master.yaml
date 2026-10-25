@@ -5437,3 +5437,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0611__baitly_chat_complete_write_turns.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0612-baitly-chat-continuations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0612__baitly_chat_continuations.sql
+            relativeToChangelogFile: true

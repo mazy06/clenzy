@@ -1,7 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom/vitest"]
+    "types": [
+      "vite/client",
+      "node",
+      "vitest/globals",
+      "@testing-library/jest-dom/vitest"
+    ]
   },
   "include": [
     "src/modules/supervision/agui/baitly/BaitlyChatAdapter.test.ts",
@@ -11,7 +16,8 @@
     "src/schemas/baitlyDependencyCompatibility.test.ts",
     "src/schemas/serviceReference.test.ts",
     "src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts",
-    "src/modules/supervision/core/__tests__/applyStreamEvent.test.ts"
+    "src/modules/supervision/core/__tests__/applyStreamEvent.test.ts",
+    "src/modules/supervision/agui/baitly/BaitlyChatNativeIntegration.test.tsx"
   ],
   "exclude": []
 }

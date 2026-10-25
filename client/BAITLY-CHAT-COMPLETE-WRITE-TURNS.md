@@ -1,5 +1,9 @@
 # Preuve complète des tours d’écriture et des reprises
 
+État suivant : [vague technique regroupée](BAITLY-FINAL-TECHNICAL-WAVE.md), qui
+intègre le chat natif et retire les SDK. Le présent document décrit la phase
+historique antérieure ; ses limites ne sont pas toutes le statut courant.
+
 Suite cumulative de #523, entièrement verte sur
 `186e416e86eb6117ce7d583d68e992f0cdd5a72f`, scan compris. Son artefact de
 recette PostgreSQL/JSONB 40180536402 confirme 89 cas SQL sans échec ni ignoré.

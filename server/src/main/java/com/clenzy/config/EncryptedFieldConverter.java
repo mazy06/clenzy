@@ -3,8 +3,7 @@ package com.clenzy.config;
 import com.clenzy.exception.FieldDecryptionException;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
-import org.jasypt.iv.RandomIvGenerator;
+import com.clenzy.util.BaitlyFieldCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,7 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
 
     private static final Logger log = LoggerFactory.getLogger(EncryptedFieldConverter.class);
 
-    private static volatile PooledPBEStringEncryptor encryptor;
+    private static volatile com.clenzy.util.BaitlySecretValueCodec encryptor;
 
     /**
      * Mode strict (defaut) : un echec de dechiffrement leve une
@@ -52,19 +51,21 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
      * Initialisation statique du chiffreur.
      * Spring injecte la valeur via @Value sur le setter pour que le composant static fonctionne.
      */
-    @Value("${jasypt.encryptor.password}")
     public void setEncryptorPassword(String password) {
-        // Même StandardPBEStringEncryptor, algorithme et IV que AES256TextEncryptor.
-        // Les autres paramètres et le format restent les défauts Jasypt existants.
-        // Plusieurs requêtes peuvent travailler sans attendre le verrou d'un seul Cipher.
-        var pooled = new PooledPBEStringEncryptor();
-        pooled.setAlgorithm("PBEWithHMACSHA512AndAES_256");
-        pooled.setIvGenerator(new RandomIvGenerator());
-        pooled.setPassword(password);
-        pooled.setPoolSize(Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors())));
-        encryptor = pooled;
-        log.debug("EncryptedFieldConverter initialise avec succes");
+        configure(password,1,"","",false);
     }
+
+    /** Deploy readers on all replicas before enabling new writes; never guess a legacy key. */
+    public void configure(@Value("${jasypt.encryptor.password}") String password,
+            @Value("${baitly.security.field-encryption.key-version:1}") int version,
+            @Value("${baitly.security.field-encryption.previous-passwords:}") String previous,
+            @Value("${baitly.security.field-encryption.legacy-password:}") String legacy,
+            @Value("${baitly.security.field-encryption.authenticated-writes:false}") boolean enabled) {
+        encryptor=new com.clenzy.util.BaitlySecretValueCodec(password,version,previous,legacy,enabled);
+        log.debug("Baitly field encryption initialized");
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public void configureCodec(com.clenzy.util.BaitlySecretValueCodec codec) { encryptor=codec; }
 
     @Value("${clenzy.security.field-encryption.fail-on-decrypt-error:true}")
     public void setFailOnDecryptError(boolean value) {
@@ -83,8 +84,8 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
         try {
             return encryptor.encrypt(attribute);
         } catch (Exception e) {
-            log.error("Erreur de chiffrement pour la colonne: {}", e.getMessage());
-            throw new RuntimeException("Erreur de chiffrement RGPD", e);
+            log.error("Baitly field encryption unavailable");
+            throw new IllegalStateException("Baitly field encryption unavailable");
         }
     }
 
@@ -109,9 +110,9 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
             log.error("Echec de dechiffrement d'un champ chiffre en base "
                     + "(cle JASYPT incorrecte ou donnee alteree) [{}]",
                     e.getClass().getSimpleName());
-            if (failOnDecryptError) {
+            if (failOnDecryptError || BaitlyFieldCipher.isAuthenticated(dbData)) {
                 throw new FieldDecryptionException(
-                        "Echec de dechiffrement d'un champ chiffre au repos", e);
+                        "Echec de dechiffrement d'un champ chiffre au repos", null);
             }
             // Mode tolerant explicite (transition migration progressive) :
             // sert la valeur brute, mais l'echec reste visible (ERROR ci-dessus).

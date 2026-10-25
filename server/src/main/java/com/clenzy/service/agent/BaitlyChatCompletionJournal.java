@@ -20,6 +20,7 @@ import java.util.UUID;
 public class BaitlyChatCompletionJournal {
     public static final String POLICY = "durable-text-v1";
     public static final String TOOLS_POLICY = "durable-tools-v2";
+    public static final String WRITES_POLICY = "durable-writes-v3";
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
     public BaitlyChatCompletionJournal(JdbcTemplate jdbc, PlatformTransactionManager manager) {
@@ -28,12 +29,40 @@ public class BaitlyChatCompletionJournal {
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     public record Ticket(UUID id, Long organizationId, String userId, Long conversationId,
-                         Long baselineId, int baselineCount, boolean resume, boolean toolsPolicy) {
+                         Long baselineId, int baselineCount, boolean resume, boolean toolsPolicy,boolean writesPolicy) {
+        public Ticket(UUID id,Long org,String user,Long conversation,Long baseline,int count,boolean resume,boolean tools) {
+            this(id,org,user,conversation,baseline,count,resume,tools,false);
+        }
         public Ticket(UUID id,Long org,String user,Long conversation,Long baseline,int count,boolean resume) {
             this(id,org,user,conversation,baseline,count,resume,false);
         }
     }
     public record Proof(String policy, String status, String lastMessageId, String requestId) {}
+    void recordDecline(Ticket ticket,String call,Long result) {
+        requireNoOuterTransaction();
+        transaction.executeWithoutResult(tx->{ requireRunning(ticket); new BaitlyChatContinuations(jdbc).decline(ticket,call,result); });
+    }
+    public Ticket beginWithWrites(Long org,String user,Long conversation,UUID request,String pending) {
+        return transaction.execute(tx->{
+            lockOwned(org,user,conversation);
+            var latest=latest(org,user,conversation); var history=metadata(org,conversation);
+            if(latest==null) {
+                if(pending!=null || !history.isEmpty() || hasPending(org,conversation)
+                    || count("SELECT count(*) FROM agent_run WHERE organization_id=? AND conversation_id=?",org,conversation)>0) throw unavailable();
+            } else {
+                String state=new BaitlyChatContinuations(jdbc).state(org,user,conversation);
+                if(pending==null? !"COMPLETE".equals(state):!"PAUSED".equals(state)) throw unavailable();
+                if(pending!=null && !new BaitlyChatContinuations(jdbc).awaiting(org,user,conversation,pending)) throw unavailable();
+            }
+            UUID id=UUID.randomUUID(); Long baseline=lastId(history);
+            jdbc.update("""
+                INSERT INTO baitly_chat_turns (id,organization_id,keycloak_user_id,conversation_id,request_id,
+                    turn_sequence,status,baseline_message_id,covered_message_count,started_at)
+                VALUES (?,?,?,?,?,?,'RUNNING',?,0,?)
+                """,id,org,user,conversation,request,latest==null?1:latest.sequence()+1,baseline,Timestamp.from(Instant.now()));
+            return new Ticket(id,org,user,conversation,baseline,history.size(),pending!=null,true,true);
+        });
+    }
     /** Evidence of a bounded read, never an execution or replay permit. */
     public record ToolEvidence(String toolCallId, String proofKind, String status, String resultMessageId) {}
     public record WriteEvidence(String toolCallId,String proofKind,String outcome,String proofId,
@@ -115,12 +144,17 @@ public class BaitlyChatCompletionJournal {
                     AND role='tool' AND tool_call_id=?
                 """,Integer.class,ticket.organizationId(),ticket.conversationId(),callId);
             if(!Integer.valueOf(0).equals(recorded)) throw unavailable();
+            UUID evidenceId=UUID.randomUUID();
             jdbc.update("""
                 INSERT INTO baitly_chat_tool_evidence
                 (id,turn_id,organization_id,conversation_id,tool_call_id,proof_kind,status,started_at)
                 VALUES (?,?,?,?,?,?,'STARTED',?)
-                """,UUID.randomUUID(),ticket.id(),ticket.organizationId(),ticket.conversationId(),callId,
+                """,evidenceId,ticket.id(),ticket.organizationId(),ticket.conversationId(),callId,
                     kind,Timestamp.from(Instant.now()));
+            String read=ticket.writesPolicy()?BaitlyChatReadBindings.name(handler):null;
+            if(read!=null) jdbc.update("""
+                INSERT INTO baitly_chat_read_bindings (tool_evidence_id,organization_id,conversation_id,tool_name) VALUES (?,?,?,?)
+                """,evidenceId,ticket.organizationId(),ticket.conversationId(),read);
         });
       } catch(org.springframework.dao.DataAccessException storageFailure) { throw unavailable(); }
     }
@@ -259,6 +293,7 @@ public class BaitlyChatCompletionJournal {
                     && !hasPending(ticket.organizationId(),ticket.conversationId());
             boolean paused=observation.paused && !observation.executed && !observation.multiAgent
                     && !observation.error && hasPending(ticket.organizationId(),ticket.conversationId());
+            if(ticket.writesPolicy()) paused=observation.continuationCandidate(true);
             String status=pureText?"SAFE_TEXT":paused?"PAUSED":"UNCERTAIN";
             int changed=jdbc.update("""
                 UPDATE baitly_chat_turns SET status=?,end_message_id=?,covered_message_count=?,finished_at=?
@@ -266,6 +301,7 @@ public class BaitlyChatCompletionJournal {
                 """,status,lastId(history),history.size(),Timestamp.from(Instant.now()),ticket.id(),ticket.organizationId(),
                     ticket.userId(),ticket.conversationId());
             if (changed!=1) throw unavailable();
+            if(ticket.writesPolicy()) new BaitlyChatContinuations(jdbc).record(ticket,observation);
             new BaitlyChatWriteTurnEvidence(jdbc).record(ticket,observation);
             if(ticket.toolsPolicy() && !ticket.resume() && observation.safeToolsCandidate()
                     && history.size()==ticket.baselineCount()+added.size()
@@ -297,6 +333,13 @@ public class BaitlyChatCompletionJournal {
       try {
         var row=latest(org,user,conversation);
         if (row==null) return null;
+        String continuation=new BaitlyChatContinuations(jdbc).state(org,user,conversation);
+        if(continuation!=null) {
+            boolean exact=covers(row,metadata(org,conversation)) && history.stream().map(AssistantMessage::getId).sorted().toList()
+                .equals(metadata(org,conversation).stream().map(Message::id).toList());
+            return new Proof(WRITES_POLICY,exact && "COMPLETE".equals(continuation)?"SAFE_WRITES":exact && "PAUSED".equals(continuation)?"PAUSED":"UNCERTAIN",
+                exact && "COMPLETE".equals(continuation)?"history-"+row.endId():null,row.requestId().toString());
+        }
         Long last=history.stream().map(AssistantMessage::getId).max(Long::compareTo).orElse(null);
         var metadata=metadata(org,conversation);
         boolean matches=row.covered()==history.size() && Objects.equals(row.endId(),last)

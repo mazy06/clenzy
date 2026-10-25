@@ -4,15 +4,15 @@ import { BaitlyAgUiError, type BaitlyAgUiEvent } from './BaitlyAgUiProtocol';
 import { emptyChat, reduceBaitlyChat, restoreBaitlyHistory, type ChatModel } from './BaitlyChatModel';
 
 const recoverySchema = z.object({ version: z.literal(1), resumePolicy: z.literal('durable-decision-v1'),
-  conversationId: z.number().int().positive(), canStart: z.boolean(), actions: z.array(z.object({
+  conversationId: z.number().int().positive().nullable(), canStart: z.boolean(), actions: z.array(z.object({
     toolCallId: z.string().min(1), toolName: z.string().min(1), description: z.string().nullable(),
     expiresAt: z.iso.datetime({ offset: true }), resumable: z.boolean(),
   })), history: z.array(z.object({ id: z.string().min(1), role: z.enum(['user', 'assistant', 'tool']),
-    content: z.string().nullable(), toolCallId: z.string().nullable(), hasAttachments: z.boolean() })).default([]),
+    content: z.string().nullable(), toolCallId: z.string().nullable(), hasAttachments: z.boolean(), presentation:z.string().nullable().optional() })).default([]),
   reconciliation: z.array(z.object({ toolCallId: z.string().min(1), toolName: z.string().min(1),
     evidence: z.enum(['AWAITING_DECISION', 'EXPIRED', 'DECLINED', 'RESULT_RECORDED', 'UNCERTAIN', 'CONFLICT']),
     resultMessageId: z.string().nullable() })).default([]),
-  completion: z.object({policy:z.enum(['durable-text-v1','durable-tools-v2']),status:z.enum(['RUNNING','SAFE_TEXT','SAFE_TOOLS','PAUSED','UNCERTAIN']),
+  completion: z.object({policy:z.enum(['durable-text-v1','durable-tools-v2','durable-writes-v3']),status:z.enum(['RUNNING','SAFE_TEXT','SAFE_TOOLS','SAFE_WRITES','PAUSED','UNCERTAIN']),
     lastMessageId:z.string().nullable(),requestId:z.string().min(1)}).nullable().default(null),
   toolEvidence:z.array(z.object({toolCallId:z.string().min(1),proofKind:z.enum(['NAVIGATION_ONLY_V1','TAX_READ_ONLY_V1','UNVERIFIED']),
     status:z.enum(['STARTED','READ_ONLY_COMPLETED','UNCERTAIN']),resultMessageId:z.string().nullable()})).optional() });
@@ -25,14 +25,14 @@ export interface ChatSnapshot {
   reconciliation: ChatRecovery['reconciliation'];
 }
 export interface ChatAdapterOptions {
-  conversationId: number;
-  loadRecovery: () => Promise<unknown>;
+  conversationId: number | null;
+  loadRecovery: (conversationId?:number) => Promise<unknown>;
   createClient: () => BaitlyAgUiClient;
   newId?: () => string;
   now?: () => number;
 }
 
-/** Inactive UI seam. No effect on subscribe, reconnect, restore or mount. */
+/** Native UI adapter. No execution on subscribe, reconnect, restore or mount. */
 export class BaitlyChatAdapter {
   private snapshot: ChatSnapshot = { phase: 'restoring', model: emptyChat(), pending: [], failure: null, reconciliation: [] };
   private readonly listeners = new Set<() => void>();
@@ -42,11 +42,14 @@ export class BaitlyChatAdapter {
   private active: BaitlyAgUiClient | null = null;
   private readonly id: () => string;
   private readonly now: () => number;
+  private conversationId:number|null;
   constructor(private readonly options: ChatAdapterOptions) {
     this.id = options.newId ?? (() => crypto.randomUUID());
     this.now = options.now ?? Date.now;
+    this.conversationId=options.conversationId;
   }
   getSnapshot = (): ChatSnapshot => this.snapshot;
+  get conversation():number|null { return this.conversationId; }
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
   private update(next: Partial<ChatSnapshot>): void {
     if (this.disposed) return;
@@ -54,8 +57,8 @@ export class BaitlyChatAdapter {
     for (const listener of this.listeners) listener();
   }
   private async proof(): Promise<ChatRecovery> {
-    const result = recoverySchema.safeParse(await this.options.loadRecovery());
-    if (!result.success || result.data.conversationId !== this.options.conversationId
+    const result = recoverySchema.safeParse(await this.options.loadRecovery(this.conversationId ?? undefined));
+    if (!result.success || result.data.conversationId !== this.conversationId
       || new Set(result.data.actions.map(a => a.toolCallId)).size !== result.data.actions.length
       || new Set(result.data.history.map(m => m.id)).size !== result.data.history.length
       || new Set(result.data.reconciliation.map(r => r.toolCallId)).size !== result.data.reconciliation.length
@@ -63,14 +66,18 @@ export class BaitlyChatAdapter {
       || result.data.reconciliation.some(r => (r.evidence === 'RESULT_RECORDED' && r.resultMessageId === null)
         || (r.resultMessageId !== null && !result.data.history.some(m => m.id === r.resultMessageId
           && m.role === 'tool' && m.toolCallId === r.toolCallId)))
-      || (result.data.canStart && (result.data.reconciliation.length > 0 || result.data.actions.length > 0))
+      || (result.data.canStart && (result.data.actions.length > 0 || (result.data.completion?.status!=='SAFE_WRITES' && result.data.reconciliation.length>0)))
+      || (result.data.completion?.status==='SAFE_WRITES' && (result.data.completion.policy!=='durable-writes-v3'
+        || result.data.completion.lastMessageId!==result.data.history.at(-1)?.id
+        || result.data.history.at(-1)?.role!=='assistant' || !result.data.history.at(-1)?.content?.trim()
+        || result.data.reconciliation.some(r=>!['DECLINED','RESULT_RECORDED'].includes(r.evidence))))
       || (result.data.completion?.status==='SAFE_TOOLS' && !this.completeToolProof(result.data))
-      || (result.data.canStart && result.data.completion?.status!=='SAFE_TOOLS' && (result.data.toolEvidence?.length ?? 0)>0)
-      || (result.data.canStart && result.data.history.length > 0 && ((!['SAFE_TEXT','SAFE_TOOLS'].includes(result.data.completion?.status ?? ''))
+      || (result.data.canStart && !['SAFE_TOOLS','SAFE_WRITES'].includes(result.data.completion?.status ?? '') && (result.data.toolEvidence?.length ?? 0)>0)
+      || (result.data.canStart && result.data.history.length > 0 && ((!['SAFE_TEXT','SAFE_TOOLS','SAFE_WRITES'].includes(result.data.completion?.status ?? ''))
         || result.data.completion?.lastMessageId !== result.data.history.at(-1)?.id
         || result.data.history.some(m => m.hasAttachments)
         || (result.data.completion?.status==='SAFE_TEXT' && result.data.history.some(m=>m.role==='tool'))))
-      || (result.data.canStart && result.data.completion !== null && !['SAFE_TEXT','SAFE_TOOLS'].includes(result.data.completion.status))
+      || (result.data.canStart && result.data.completion !== null && !['SAFE_TEXT','SAFE_TOOLS','SAFE_WRITES'].includes(result.data.completion.status))
       || result.data.actions.some(a => result.data.history.some(m => m.role === 'tool' && m.toolCallId === a.toolCallId))
       || result.data.actions.some(a => result.data.reconciliation.some(r => r.toolCallId === a.toolCallId
         && r.evidence !== 'AWAITING_DECISION'))) {
@@ -143,16 +150,23 @@ export class BaitlyChatAdapter {
     try {
       const client = this.options.createClient(); this.active = client;
       const runId = this.id();
-      const threadId = `baitly-chat-${this.options.conversationId}`;
+      const threadId = `baitly-chat-${this.conversationId ?? runId}`;
       if (decision) client.restorePending(threadId, runId, [decision.id]);
       this.update({ phase: 'running', failure: null });
       const outcome = await client.run({ threadId, runId, messages: this.snapshot.model.messages,
         state: this.snapshot.model.state, tools: [], context: [],
-        forwardedProps: { conversationId: this.options.conversationId, completionPolicy:'durable-tools-v2' },
+        forwardedProps: { conversationId: this.conversationId, completionPolicy:'durable-writes-v3' },
         ...(decision ? { resume: [{ interruptId: decision.id,
           status: decision.confirmed ? 'resolved' as const : 'cancelled' as const,
           payload: { confirmed: decision.confirmed } }] } : {}),
-      }, (event: BaitlyAgUiEvent) => { this.update({ model: reduceBaitlyChat(this.snapshot.model, event) }); });
+      }, (event: BaitlyAgUiEvent) => {
+        if(event.type==='STATE_SNAPSHOT' && event.snapshot && typeof event.snapshot==='object' && 'conversationId' in event.snapshot) {
+          const id=(event.snapshot as {conversationId:unknown}).conversationId;
+          if(typeof id!=='number' || !Number.isSafeInteger(id) || id<=0 || (this.conversationId!==null && this.conversationId!==id)) throw new BaitlyAgUiError('PROTOCOL');
+          this.conversationId=id;
+        }
+        this.update({ model: reduceBaitlyChat(this.snapshot.model, event) });
+      });
       if (this.disposed) return;
       // Terminal SSE alone never authorizes another message; require server proof.
       if (outcome.type === 'interrupt') {

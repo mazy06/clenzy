@@ -15,6 +15,10 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
     String doneReason;
     final java.util.Set<String> executedIds=new java.util.HashSet<>();
     boolean conflictingExecution;
+    boolean duplicateExecution;
+    int pauseCount;
+    final java.util.Set<String> erroredIds=new java.util.HashSet<>();
+    final java.util.Set<String> declinedIds=new java.util.HashSet<>();
     private BaitlyChatCompletionJournal journal;
     private BaitlyChatCompletionJournal.Ticket ticket;
     private String writeCallId;
@@ -67,6 +71,21 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
         return new BaitlyChatTurnObservation();
     }
     static boolean active() { return CURRENT.get()!=null; }
+    static boolean writesPolicy() { var current=CURRENT.get(); return current!=null && current.ticket!=null && current.ticket.writesPolicy(); }
+    static void declinedPersisted(String id,Long resultId) {
+        var current=CURRENT.get();
+        if(current!=null && current.ticket!=null && current.ticket.writesPolicy()) {
+            current.journal.recordDecline(current.ticket,id,resultId);
+            current.declinedIds.add(id);
+        }
+    }
+    boolean continuationCandidate(boolean pause) {
+        if(multiAgent || error || duplicateExecution || !declinedIds.containsAll(erroredIds)) return false;
+        if(pause) return paused && pauseCount==1 && completions==0 && doneCount==0;
+        return !paused && completions==1 && doneCount==1 && assistantMessageId!=null
+            && java.util.Objects.equals(finishReason,doneReason)
+            && java.util.Set.of("stop","end_turn").contains(java.util.Objects.toString(finishReason,""));
+    }
     static void toolsRequested() { var current=CURRENT.get(); if(current!=null) current.toolsRequested=true; }
     static void multiAgent() { var current=CURRENT.get(); if(current!=null) current.multiAgent=true; }
     static void textPersisted(Long id, String reason) {
@@ -77,9 +96,10 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
         if ("error".equals(event.type())) error=true;
         if ("tool_call_executed".equals(event.type())) {
             executed=true;
-            if(event.toolCallId()==null || !Boolean.FALSE.equals(event.toolError()) || !executedIds.add(event.toolCallId())) conflictingExecution=true;
+            if(event.toolCallId()==null || !executedIds.add(event.toolCallId())) { conflictingExecution=true; duplicateExecution=true; }
+            if(!Boolean.FALSE.equals(event.toolError())) { conflictingExecution=true; erroredIds.add(event.toolCallId()); }
         }
-        if ("paused_awaiting_confirmation".equals(event.type())) paused=true;
+        if ("paused_awaiting_confirmation".equals(event.type())) { paused=true; pauseCount++; }
         if ("done".equals(event.type())) { doneCount++; doneReason=event.finishReason(); }
     }
     boolean safeTextCandidate() {

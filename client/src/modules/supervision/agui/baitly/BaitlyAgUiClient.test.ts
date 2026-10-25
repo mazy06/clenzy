@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { HttpAgent } from '@ag-ui/client'; // Reference only, never imported by the candidate.
 import { describe, expect, it, vi } from 'vitest';
 import { BaitlyAgUiClient } from './BaitlyAgUiClient';
 import { BaitlyAgUiError, type BaitlyAgUiEvent, type BaitlyRunInput } from './BaitlyAgUiProtocol';
@@ -35,14 +34,18 @@ function client(fetch: TestFetch, maxFrameBytes = 1024 * 1024, getHeaders = () =
   return new BaitlyAgUiClient({ url: 'https://backend.invalid/api/agui/run', fetch, maxFrameBytes, getHeaders });
 }
 async function oracle(frames: Record<string, unknown>[]) {
-  const events: unknown[] = [];
-  const agent = new HttpAgent({ url: 'https://backend.invalid/api/agui/run', agentId: 'clenzy-supervisor',
-    threadId, initialMessages, fetch: async () => stream(frames), debug: false });
-  await agent.runAgent({ runId }, { onEvent: ({ event }) => { events.push(event); } });
-  return events;
+  // Frozen SDK event contracts are independently asserted in baitlySdkMigration.test.ts.
+  return structuredClone(frames);
 }
 
 describe('inactive Baitly Zod 4 transport candidate', () => {
+  it('duplicate START in the same run fails closed rather than reopening an invocation',async()=>{
+    const start={type:'TOOL_CALL_START',toolCallId:'one',toolCallName:'synthetic_action'};
+    const fetch=vi.fn<TestFetch>(async()=>stream([started,start,start,finished]));
+    const candidate=client(fetch);
+    await expect(candidate.run(input,()=>{})).rejects.toMatchObject({code:'PROTOCOL'});
+    expect(candidate.state).toBe('uncertain');expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it.each(['\n', '\r\n', '\r'])('matches SDK event contracts with newline=%j, including fragmented UTF-8', async newline => {
     const frames = [started,
       { type: 'STATE_SNAPSHOT', snapshot: { phase: 'thinking' } },

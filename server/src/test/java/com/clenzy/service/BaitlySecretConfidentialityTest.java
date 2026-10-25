@@ -58,6 +58,8 @@ class BaitlySecretConfidentialityTest {
         Object service;Function<String,String> action;
         var broken=mock(AES256TextEncryptor.class);
         when(broken.encrypt(anyString())).thenThrow(privateFailure());when(broken.decrypt(anyString())).thenThrow(privateFailure());
+        var codec=mock(com.clenzy.util.BaitlySecretValueCodec.class);
+        when(codec.encrypt(anyString())).thenThrow(privateFailure());when(codec.decrypt(anyString())).thenThrow(privateFailure());
         if(scenario.startsWith("shared")) {
             var shared=new TokenEncryptionService(KEY,1,"");service=shared;
             if(scenario.endsWith("encrypt")) {
@@ -66,10 +68,10 @@ class BaitlySecretConfidentialityTest {
             } else {ReflectionTestUtils.setField(shared,"legacyEncryptor",broken);action=shared::decrypt;}
         } else if(scenario.startsWith("airbnb")) {
             var airbnb=new AirbnbTokenEncryptionService(KEY);service=airbnb;
-            ReflectionTestUtils.setField(airbnb,"encryptor",broken);action=scenario.endsWith("encrypt")?airbnb::encrypt:airbnb::decrypt;
+            ReflectionTestUtils.setField(airbnb,"encryptor",codec);action=scenario.endsWith("encrypt")?airbnb::encrypt:airbnb::decrypt;
         } else {
             var channel=new CredentialEncryptionService(KEY);service=channel;
-            ReflectionTestUtils.setField(channel,"encryptor",broken);action=scenario.endsWith("encrypt")?channel::encrypt:channel::decrypt;
+            ReflectionTestUtils.setField(channel,"encryptor",codec);action=scenario.endsWith("encrypt")?channel::encrypt:channel::decrypt;
         }
         var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(service.getClass());
         var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();

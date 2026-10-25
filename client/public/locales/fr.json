@@ -21792,6 +21792,11 @@
       "RESULT_RECORDED": "Résultat enregistré",
       "UNCERTAIN": "Résultat à vérifier",
       "CONFLICT": "Preuves incohérentes, reprise bloquée"
-    }
+    },
+    "accessDenied": "Accès réservé aux gestionnaires autorisés.",
+    "conversations": "Conversations",
+    "newConversation": "Nouvelle conversation",
+    "conversation": "Conversation",
+    "historyUnavailable": "Historique indisponible. Les actions en cours ne sont pas relancées."
   }
 }

@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -43,6 +44,61 @@ import static org.mockito.Mockito.*;
  * </ul>
  */
 class AgentConfirmationFlowTest {
+    @Test void durableTransportChoosesSequentialRunnerBeforeAnyParallelEffect() {
+        var parallel=mock(MultiAgentFlowRunner.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(orchestrator,"multiAgentFlowRunner",parallel);
+        doAnswer(call->{ Consumer<ChatEvent> out=call.getArgument(1);
+            out.accept(new ChatEvent.TextDelta("Synthetic final"));
+            out.accept(new ChatEvent.Done(1,1,"synthetic","stop","Synthetic final"));
+            return null;
+        }).when(chatProvider).streamChat(any(),any());
+        try(var observation=BaitlyChatTurnObservation.open()) {
+            observation.bind(mock(BaitlyChatCompletionJournal.class),new BaitlyChatCompletionJournal.Ticket(
+                java.util.UUID.randomUUID(),1L,"user-confirm-test",50L,null,0,true,true,true));
+            orchestrator.handleMessage(50L,"Synthetic question",ctx,e->{});
+            assertFalse(observation.multiAgent);
+        }
+        verifyNoInteractions(parallel);
+        verify(chatProvider,times(1)).streamChat(any(),any());
+        assertEquals(0,fakeWriteTool.execCount.get());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={true,false})
+    void durableBatchDoesNotCallModelUntilAllExplicitDecisionsAreRecorded(boolean firstConfirmed) {
+        var store=mock(PendingToolStore.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(orchestrator,"pendingToolStore",store);
+        var calls=List.of(new ChatMessage.ToolCall("batch-one","fake_write","{}"),new ChatMessage.ToolCall("batch-two","fake_write","{}"));
+        var history=List.of(ChatMessage.user("Synthetic batch"),ChatMessage.assistantToolCalls(calls));
+        var first=new PendingToolStore.PendingTool("batch-one",50L,1L,"user-confirm-test","fake_write","{}",history,null,java.time.Instant.now().plusSeconds(600));
+        var second=new PendingToolStore.PendingTool("batch-two",50L,1L,"user-confirm-test","fake_write","{}",history,null,java.time.Instant.now().plusSeconds(600));
+        when(store.consume("batch-one","user-confirm-test",1L,firstConfirmed)).thenReturn(Optional.of(first));
+        when(store.consume("batch-two","user-confirm-test",1L,true)).thenReturn(Optional.of(second));
+        when(store.remainingBatch(first)).thenReturn(List.of(second));when(store.remainingBatch(second)).thenReturn(List.of());
+        var ids=new AtomicInteger();when(msgRepo.save(any())).thenAnswer(call->{var m=(com.clenzy.model.AssistantMessage)call.getArgument(0);m.setId((long)ids.incrementAndGet());return m;});
+        var recorded=List.of(com.clenzy.model.AssistantMessage.user(50L,1L,"Synthetic batch"),
+            com.clenzy.model.AssistantMessage.tool(50L,1L,"batch-one","{}"),com.clenzy.model.AssistantMessage.tool(50L,1L,"batch-two","{}"));
+        when(msgRepo.findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(1L,50L)).thenReturn(recorded);
+        doAnswer(call->{Consumer<ChatEvent> out=call.getArgument(1);out.accept(new ChatEvent.TextDelta("Synthetic final"));
+            out.accept(new ChatEvent.Done(1,1,"synthetic","stop","Synthetic final"));return null;}).when(chatProvider).streamChat(any(),any());
+        var journal=mock(BaitlyChatCompletionJournal.class);
+        var events=new ArrayList<AgentSseEvent>();
+        try(var observation=BaitlyChatTurnObservation.open()) {
+            observation.bind(journal,new BaitlyChatCompletionJournal.Ticket(java.util.UUID.randomUUID(),1L,"user-confirm-test",50L,null,0,true,true,true));
+            orchestrator.resumeAfterConfirmation("batch-one",firstConfirmed,ctx,events::add);
+        }
+        verify(chatProvider,never()).streamChat(any(),any());
+        assertTrue(events.stream().anyMatch(e->"paused_awaiting_confirmation".equals(e.type())));
+        assertEquals(firstConfirmed?1:0,fakeWriteTool.execCount.get());
+        try(var observation=BaitlyChatTurnObservation.open()) {
+            observation.bind(journal,new BaitlyChatCompletionJournal.Ticket(java.util.UUID.randomUUID(),1L,"user-confirm-test",50L,null,0,true,true,true));
+            orchestrator.resumeAfterConfirmation("batch-two",true,ctx,e->{});
+        }
+        verify(chatProvider,times(1)).streamChat(any(),any());assertEquals(firstConfirmed?2:1,fakeWriteTool.execCount.get());
+        verify(journal,times(firstConfirmed?1:0)).startTool(any(),eq("batch-one"),any());
+        verify(journal,times(1)).startTool(any(),eq("batch-two"),any());
+        verify(journal,times(firstConfirmed?0:1)).recordDecline(any(),eq("batch-one"),any());
+    }
 
     private ChatLLMProvider chatProvider;
     private ToolRegistry toolRegistry;

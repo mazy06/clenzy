@@ -21805,6 +21805,11 @@
       "RESULT_RECORDED": "Result recorded",
       "UNCERTAIN": "Result needs verification",
       "CONFLICT": "Conflicting evidence, resume blocked"
-    }
+    },
+    "accessDenied": "Access is restricted to authorized managers.",
+    "conversations": "Conversations",
+    "newConversation": "New conversation",
+    "conversation": "Conversation",
+    "historyUnavailable": "History unavailable. Pending actions are not replayed."
   }
 }

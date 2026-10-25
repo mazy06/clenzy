@@ -23,7 +23,7 @@ class BaitlyApiKeyEncryptionPrivacyTest {
         logger.addAppender(logs);
         var failure = new IllegalStateException(secret, new RuntimeException(secret));
         failure.addSuppressed(new RuntimeException(secret));
-        try (var construction = mockConstruction(AES256TextEncryptor.class, (mock, context) -> {
+        try (var construction = mockConstruction(com.clenzy.util.BaitlySecretValueCodec.class, (mock, context) -> {
             if (encrypt) when(mock.encrypt(secret)).thenThrow(failure);
             else when(mock.decrypt(secret)).thenThrow(failure);
         })) {

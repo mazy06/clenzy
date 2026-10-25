@@ -64,9 +64,9 @@ jobs:
         working-directory: copilot-runtime
         run: npm run test:security
 
-      - name: Reject critical runtime dependency advisories
+      - name: Reject high and critical runtime dependency advisories
         working-directory: copilot-runtime
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high
 
   docker-push:
     name: Build & Push Docker Image

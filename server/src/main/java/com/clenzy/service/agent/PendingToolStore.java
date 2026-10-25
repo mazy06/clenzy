@@ -102,6 +102,25 @@ public class PendingToolStore {
     private boolean redisEnabled() {
         return redisTemplate != null && objectMapper != null;
     }
+    /** Read the remaining durable decisions of this exact batch; never consume or execute. */
+    public List<PendingTool> remainingBatch(PendingTool current) {
+        if(pendingActionRepository==null || current.isMultiAgent() || current.pendingHistory()==null) throw new IllegalStateException("Baitly pending batch unavailable");
+        var history=current.pendingHistory();
+        if(history.isEmpty() || history.getLast().toolCalls()==null) throw new IllegalStateException("Baitly pending batch unavailable");
+        var result=new ArrayList<PendingTool>();
+        for(var call:history.getLast().toolCalls()) {
+            var row=pendingActionRepository.findById(call.id()).orElseThrow(()->new IllegalStateException("Baitly pending batch unavailable"));
+            if(!current.organizationId().equals(row.getOrganizationId()) || !current.keycloakId().equals(row.getKeycloakUserId())
+                || !current.conversationId().equals(row.getConversationId()) || !call.name().equals(row.getToolName())
+                || !call.arguments().equals(row.getArgsJson()) || row.isMultiAgent()) throw new IllegalStateException("Baitly pending batch unavailable");
+            if(com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(row.getStatus())) {
+                if(!Instant.now().isBefore(row.getExpiresAt())) throw new IllegalStateException("Baitly pending batch unavailable");
+                result.add(new PendingTool(row.getToolCallId(),row.getConversationId(),row.getOrganizationId(),row.getKeycloakUserId(),
+                    row.getToolName(),row.getArgsJson(),history,null,row.getExpiresAt()));
+            }
+        }
+        return List.copyOf(result);
+    }
 
     /** Read-only capability, never grants execution or consumes a pending tool. */
     public boolean canResume(com.clenzy.model.AgentPendingAction row) {

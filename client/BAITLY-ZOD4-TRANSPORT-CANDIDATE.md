@@ -1,5 +1,9 @@
 # Candidat de transport Baitly sur Zod 4
 
+État suivant : [vague technique regroupée](BAITLY-FINAL-TECHNICAL-WAVE.md), qui
+intègre le chat natif et retire les SDK. Le présent document décrit la phase
+historique antérieure ; ses limites ne sont pas toutes le statut courant.
+
 24 octobre 2026. Étape suivante de la préparation #516 : **candidat inactif**,
 sans bascule du chat, retrait de dépendance ou modification de route/permission.
 Le chat CopilotKit et le superviseur natif continuent leurs chemins existants.

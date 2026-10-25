@@ -173,9 +173,11 @@ public class AgentToolLoopRunner {
 
             // Check if any tool requires confirmation → suspend
             // (X2 : une Regle de Confiance ACTIVE court-circuite la pause).
+            boolean stagedBatch=BaitlyChatTurnObservation.writesPolicy() && outcome.toolCalls.stream().anyMatch(c ->
+                toolRegistry.find(c.name()).map(h->needsConfirmation(h,context)).orElse(false));
             for (ChatMessage.ToolCall call : outcome.toolCalls) {
                 Optional<ToolHandler> handler = toolRegistry.find(call.name());
-                if (handler.isPresent() && needsConfirmation(handler.get(), context)) {
+                if (handler.isPresent() && (stagedBatch || needsConfirmation(handler.get(), context))) {
                     // Build the "future history" : current request + this assistant turn
                     // (avec TOUS les tool_calls). Quand le user confirme/refuse, on
                     // appendera les tool results et reprendre la boucle.

@@ -1,68 +1,55 @@
-/* ============================================================
-   Runtime CopilotKit (Node) — routeur AG-UI + frontière de sécurité.
-
-   Front CopilotKit → CE runtime (/api/copilotkit) → backend Java AG-UI
-   (POST /api/agui/run, moteur multi-agent) → generative UI + HITL.
-
-   Le JWT entrant (Authorization) est relayé vers le backend Java via la
-   FACTORY d'agents per-requête : `agents: ({ request }) => …`. C'est le
-   mécanisme officiel (cf. types @copilotkit/runtime/v2) — on construit un
-   HttpAgent par requête avec les en-têtes d'auth de cette requête, donc pas
-   de fuite/partage d'en-têtes entre utilisateurs.
-   ============================================================ */
-
+/** Baitly authenticated AG-UI relay. No model, tool execution, shared agent or retry. */
 import express from 'express';
-import { CopilotRuntime } from '@copilotkit/runtime/v2';
-import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
-import { HttpAgent } from '@ag-ui/client';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { pathToFileURL } from 'node:url';
 
-const PORT = process.env.PORT || 8080;
-const ALLOWED_ORIGIN = process.env.COPILOT_ALLOWED_ORIGIN || 'http://localhost:3000';
-const BASE_PATH = process.env.COPILOT_BASE_PATH || '/api/copilotkit';
-// URL interne du backend Java (réseau Docker). Dev : clenzy-server:8080.
-const AGUI_BACKEND_URL = process.env.AGUI_BACKEND_URL || 'http://clenzy-server:8080/api/agui/run';
-const AGENT_NAME = process.env.COPILOT_AGENT_NAME || 'clenzy-supervisor';
-
-const app = express();
-
-// CORS — le front appelle ce service en cross-origin (dev). Bearer + cookie.
-// On gère le CORS ici (donc `cors: false` côté handler CopilotKit).
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Vary', 'Origin');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  return next();
-});
-
-app.get('/health', (_req, res) =>
-  res.json({ status: 'ok', service: 'copilot-runtime', aguiBackend: AGUI_BACKEND_URL }),
-);
-
-// Runtime CopilotKit (mode SSE) : un agent distant = notre backend Java AG-UI.
-// La factory per-requête relaie l'Authorization (et le cookie) entrant.
-const runtime = new CopilotRuntime({
-  agents: ({ request }) => {
-    const headers = {};
-    const auth = request.headers.get('authorization');
-    const cookie = request.headers.get('cookie');
-    if (auth) headers.Authorization = auth;
-    if (cookie) headers.Cookie = cookie;
-    // Diagnostic : confirme que l'auth atteint le runtime (sinon 401 côté Java).
-    console.log('[copilot-runtime] run auth →', { hasAuthorization: !!auth, hasCookie: !!cookie });
-    return {
-      [AGENT_NAME]: new HttpAgent({ url: AGUI_BACKEND_URL, headers }),
-    };
-  },
-});
-
-// Monte les routes /api/copilotkit. CORS géré au-dessus → `cors: false`.
-app.use(createCopilotExpressHandler({ runtime, basePath: BASE_PATH, cors: false }));
-
-app.listen(PORT, () =>
-  console.log(
-    `[copilot-runtime] runtime CopilotKit sur :${PORT}${BASE_PATH} → ${AGUI_BACKEND_URL} (agent "${AGENT_NAME}", origin ${ALLOWED_ORIGIN})`,
-  ),
-);
+export function backendHeaders(headers) {
+  const result={Accept:'text/event-stream','Content-Type':'application/json'};
+  if(typeof headers.authorization==='string') result.Authorization=headers.authorization;
+  if(typeof headers.cookie==='string') result.Cookie=headers.cookie;
+  return result;
+}
+export function createBaitlyRelay({fetchImpl=fetch,backend=process.env.AGUI_BACKEND_URL || 'http://clenzy-server:8080/api/agui/run',
+  origin=process.env.COPILOT_ALLOWED_ORIGIN || 'http://localhost:3000',
+  basePath=process.env.COPILOT_BASE_PATH || '/api/copilotkit',
+  agent=process.env.COPILOT_AGENT_NAME || 'clenzy-supervisor'}={}) {
+  const app=express();app.disable('x-powered-by');
+  app.use((_req,res,next)=>{
+    res.set({'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Credentials':'true',
+      'Access-Control-Allow-Headers':'Content-Type, Authorization, Accept',
+      'Access-Control-Allow-Methods':'GET, POST, OPTIONS',Vary:'Origin','Cache-Control':'no-store'});
+    if(_req.method==='OPTIONS') return res.sendStatus(204);
+    next();
+  });
+  app.get('/health',(_req,res)=>res.json({status:'ok',service:'copilot-runtime'}));
+  // Compatibility discovery contains no remote diagnostics or backend network address.
+  const info=(_req,res)=>res.json({agents:{[agent]:{name:agent,description:'Superviseur Baitly'}}});
+  app.get(basePath+'/info',info);
+  app.post(basePath+'/info',info);
+  const run=async(req,res)=>{
+    if(req.params.agentName && req.params.agentName!==agent) return res.sendStatus(404);
+    const abort=new AbortController();
+    const close=()=>{if(!res.writableEnded) abort.abort();};res.on('close',close);
+    const timer=setTimeout(()=>abort.abort(),300_000);timer.unref();
+    try {
+      const upstream=await fetchImpl(backend,{method:'POST',headers:backendHeaders(req.headers),body:JSON.stringify(req.body),
+        signal:abort.signal,redirect:'error'});
+      if(!upstream.ok || !upstream.body || !/^text\/event-stream(?:\s*;|$)/i.test(upstream.headers.get('content-type')||'')) {
+        await upstream.body?.cancel();return res.status(upstream.status>=400 && upstream.status<500?upstream.status:502).json({error:'BAITLY_RELAY_UNAVAILABLE'});
+      }
+      res.status(200).set({'Content-Type':'text/event-stream','X-Accel-Buffering':'no'});res.flushHeaders();
+      await pipeline(Readable.fromWeb(upstream.body),res,{signal:abort.signal});
+    } catch {
+      if(!res.headersSent) res.status(502).json({error:'BAITLY_RELAY_UNAVAILABLE'});else res.destroy();
+    } finally {clearTimeout(timer);res.off('close',close);}
+  };
+  const json=express.json({limit:'1mb',strict:true});
+  app.post(basePath+'/agent/:agentName/run',json,run);
+  app.post(basePath+'/run',json,run);
+  app.use((_error,_req,res,_next)=>res.status(400).json({error:'BAITLY_RELAY_INVALID_REQUEST'}));
+  return app;
+}
+if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
+  createBaitlyRelay().listen(process.env.PORT || 8080,()=>console.log('Baitly relay ready'));
+}

@@ -82,7 +82,7 @@ jobs:
         working-directory: client
         run: |
           npx tsc --noEmit -p tsconfig.dependency-tests.json
-          npx vitest run src/schemas/baitlyDependencyCompatibility.test.ts src/schemas/serviceReference.test.ts src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts src/modules/supervision/core/__tests__/applyStreamEvent.test.ts src/modules/supervision/agui/baitlySdkMigration.test.ts src/modules/supervision/agui/baitly/BaitlyAgUiClient.test.ts src/modules/supervision/agui/baitly/BaitlyChatAdapter.test.ts src/modules/supervision/agui/baitly/BaitlyChatCandidate.test.tsx --reporter=default --reporter=junit --outputFile=test-results/baitly-dependency-compatibility.xml
+          npx vitest run src/schemas/baitlyDependencyCompatibility.test.ts src/schemas/serviceReference.test.ts src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts src/modules/supervision/core/__tests__/applyStreamEvent.test.ts src/modules/supervision/agui/baitlySdkMigration.test.ts src/modules/supervision/agui/baitly/BaitlyAgUiClient.test.ts src/modules/supervision/agui/baitly/BaitlyChatAdapter.test.ts src/modules/supervision/agui/baitly/BaitlyChatCandidate.test.tsx src/modules/supervision/agui/baitly/BaitlyChatNativeIntegration.test.tsx --reporter=default --reporter=junit --outputFile=test-results/baitly-dependency-compatibility.xml
 
       - name: Upload dependency compatibility evidence
         if: always() && steps.dependency-contracts.outcome != 'skipped'
@@ -172,12 +172,12 @@ jobs:
 
       - name: NPM audit (high + critical)
         working-directory: client
-        run: npm audit --audit-level=critical
+        run: npm audit --audit-level=high
 
   docker-push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: typecheck-and-build
+    needs: [typecheck-and-build, security-audit]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/production')
 
     steps:
