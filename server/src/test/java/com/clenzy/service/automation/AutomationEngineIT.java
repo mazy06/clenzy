@@ -76,6 +76,10 @@ class AutomationEngineIT extends AbstractIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private InvoiceRepository invoiceRepository;
     @Autowired private Clock clock;
+    @Autowired private javax.sql.DataSource dataSource;
+    // This suite drives the automation worker, not the independent assignment timer.
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.clenzy.service.assignment.AssignmentDeadlineDispatcher assignmentTimer;
 
     private Long orgAId;
     private Long orgBId;
@@ -84,6 +88,7 @@ class AutomationEngineIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void createTestData() {
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.install(dataSource);
         Organization orgA = organizationRepository.save(
             new Organization("Automation Org A", OrganizationType.INDIVIDUAL, "automation-org-a-"+java.util.UUID.randomUUID()));
         orgAId = orgA.getId();

@@ -100,7 +100,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
                 var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream()
                     .filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index").contains(set.getId())).forEach(selected::addChangeSet);
-                if(selected.getChangeSets().size()!=1) throw new IllegalStateException("Changeset de recette requis");
+                if(selected.getChangeSets().size()!=3) throw new IllegalStateException("Trois changesets de recette requis");
                 new liquibase.Liquibase(selected,resources,database).update("");
             }
         } catch(Exception failure) { throw new IllegalStateException("Migration de recette avertissements echouee",failure); }
