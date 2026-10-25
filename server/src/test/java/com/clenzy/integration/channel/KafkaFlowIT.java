@@ -130,6 +130,7 @@ class KafkaFlowIT {
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private javax.sql.DataSource dataSource;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
     @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @org.springframework.boot.test.mock.mockito.MockBean
     private com.clenzy.service.assignment.AssignmentDeadlineDispatcher assignmentTimer;
@@ -141,6 +142,7 @@ class KafkaFlowIT {
         Organization organization = organizationRepository.save(
             new Organization("Kafka Flow Org", OrganizationType.INDIVIDUAL, "kafka-flow-org"));
         Long orgId = organization.getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgId);
 
         User owner = new User("Kevin", "Kafka", "kevin.kafka@test.com", "password123");
         owner.setOrganizationId(orgId);
@@ -210,6 +212,7 @@ class KafkaFlowIT {
             .filter(e -> reservation1Id.equals(e.getSubjectId())).count(),
             "Idempotence : une seule execution pour la reservation re-livree");
         assertTrue(serviceRequestRepository.findByAutoFlowKey(key1, orgId).isPresent());
+        assertEquals("MANUAL", serviceRequestRepository.findByAutoFlowKey(key1, orgId).orElseThrow().getAssignmentPhase());
     }
 
     /**

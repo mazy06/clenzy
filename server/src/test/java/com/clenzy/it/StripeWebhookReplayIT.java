@@ -284,7 +284,7 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
                 "id", "pi_" + salt, "customer", customer, "status", "succeeded", "latest_charge", "ch_" + salt),
                 com.stripe.model.PaymentIntent.class));
         when(stripe.retrieveCharge("ch_" + salt)).thenReturn(stripeObject(Map.of(
-                "id", "ch_" + salt, "customer", customer, "amount", 1200, "amount_captured", 1200,
+                "object", "charge", "id", "ch_" + salt, "customer", customer, "amount", 1200, "amount_captured", 1200,
                 "amount_refunded", 0, "paid", true, "captured", true, "currency", "eur"), com.stripe.model.Charge.class));
         when(stripe.refundsForCharge("ch_" + salt)).thenReturn(List.of());
         when(stripe.disputesForCharge("ch_" + salt)).thenReturn(List.of());
