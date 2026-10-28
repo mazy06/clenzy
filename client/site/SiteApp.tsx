@@ -12,6 +12,7 @@ const loaders = {
   PricingPage: () => import('./pages/PricingPage'),
   MigrationPage: () => import('./pages/MigrationPage'),
   ComparePage: () => import('./pages/ComparePage'),
+  CountryPage: () => import('./pages/CountryPage'),
   AlternativePage: () => import('./pages/AlternativePage'),
   ResourcesPage: () => import('./pages/ResourcesPage'),
   BaitlyResourcePage: () => import('./pages/BaitlyResourcePage'),
@@ -47,6 +48,7 @@ const lazyPages = {
   PricingPage: lazy(loaders.PricingPage),
   MigrationPage: lazy(loaders.MigrationPage),
   ComparePage: lazy(loaders.ComparePage),
+  CountryPage: lazy(loaders.CountryPage),
   AlternativePage: lazy(loaders.AlternativePage),
   ResourcesPage: lazy(loaders.ResourcesPage),
   BaitlyResourcePage: lazy(loaders.BaitlyResourcePage),
@@ -85,6 +87,9 @@ export function initialPageKey(pathname: string): PageKey {
     '/tarifs': 'PricingPage',
     '/migration': 'MigrationPage',
     '/comparer': 'ComparePage',
+    '/maroc': 'CountryPage',
+    '/arabie-saoudite': 'CountryPage',
+    '/france': 'CountryPage',
     '/alternative-guesty': 'AlternativePage',
     '/alternative-lodgify': 'AlternativePage',
     '/alternative-smoobu': 'AlternativePage',
@@ -135,6 +140,7 @@ export default function SiteApp({
     PricingPage,
     MigrationPage,
     ComparePage,
+    CountryPage,
     AlternativePage,
     ResourcesPage,
     BaitlyResourcePage,
@@ -164,6 +170,12 @@ export default function SiteApp({
             <Route path="/tarifs" element={<PricingPage />} />
             <Route path="/migration" element={<MigrationPage />} />
             <Route path="/comparer" element={<ComparePage />} />
+            <Route path="/maroc" element={<CountryPage country="maroc" />} />
+            <Route
+              path="/arabie-saoudite"
+              element={<CountryPage country="arabie-saoudite" />}
+            />
+            <Route path="/france" element={<CountryPage country="france" />} />
             <Route
               path="/alternative-guesty"
               element={<AlternativePage vendor="guesty" />}

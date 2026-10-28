@@ -12,11 +12,25 @@ import { scriptSafeJson } from './academyStructuredData';
 import { siteStaticHtml } from '../../tooling/baitlySiteStatic';
 import { siteDocuments } from '../../tooling/baitlySiteContent';
 import { HOME_MESSAGES } from './messages/home';
+import { PAGE_SEARCH } from './siteSeo';
 
 const catalogSource = readFileSync('site/data/catalog.tsx', 'utf8');
 const pages = metadataCatalog(discoveryCatalog(catalogSource));
 const template = readFileSync('site/index.html', 'utf8');
 describe('Public metadata', () => {
+  it.each(['fr', 'en', 'ar'] as const)(
+    'gives every commercial page a search title that targets a real page in %s',
+    (language) => {
+      for (const [path, search] of Object.entries(PAGE_SEARCH[language])) {
+        expect(pages[language][path]?.index, path).toBe(true);
+        expect(pages[language][path].title).toBe(search.title);
+      }
+      expect(Object.keys(PAGE_SEARCH[language]).sort()).toEqual(
+        Object.keys(PAGE_SEARCH.fr).sort(),
+      );
+    },
+  );
+
   it.each(['fr', 'en', 'ar'] as const)(
     'serves the styled journal layout before JavaScript in %s',
     (language) => {
@@ -135,12 +149,7 @@ describe('Public metadata', () => {
     'builds one translated head and canonical URL per page in %s',
     (language) => {
       const page = pages[language]['/solutions'];
-      expect(page.title).toContain(
-        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(
-          /\s+/g,
-          ' ',
-        ),
-      );
+      expect(page.title).toBe(PAGE_SEARCH[language]['/solutions'].title);
       const rendered = metadataHtml(
         metadataHtml(template, pages.fr['/'], '/', 'fr'),
         page,
