@@ -149,6 +149,13 @@ class RlsBootIT extends AbstractIntegrationTest {
         }
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void retirerPolitiquesDeFixture() {
+        // The singleton database is reused by other integration contexts that
+        // intentionally do not enable RLS. Never leave these test policies active.
+        retirerPolitiqueRls();
+    }
+
 
     @BeforeEach
     void seed() {
@@ -162,9 +169,9 @@ class RlsBootIT extends AbstractIntegrationTest {
         jdbcTemplate.update("DELETE FROM payment_transactions WHERE organization_id IN (?, ?)", ORG_A, ORG_B);
         for (Long org : new Long[] {ORG_A, ORG_B}) {
             jdbcTemplate.update(
-                    "INSERT INTO payment_transactions (organization_id, transaction_ref, amount, "
+                    "INSERT INTO payment_transactions (organization_id, transaction_ref, amount, disputed_amount, "
                             + "currency, status, payment_type, provider_type) "
-                            + "VALUES (?, ?, 100.00, 'EUR', 'PENDING', 'CHECKOUT', 'STRIPE')",
+                            + "VALUES (?, ?, 100.00, 0.00, 'EUR', 'PENDING', 'CHECKOUT', 'STRIPE')",
                     org, "rls-boot-" + org);
         }
         poserPolitiqueRls();

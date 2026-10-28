@@ -1,6 +1,6 @@
 package com.clenzy.integration.external.service;
 
-import org.jasypt.util.text.AES256TextEncryptor;
+import com.clenzy.util.BaitlySecretValueCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,12 +27,14 @@ public class ApiKeyEncryptionService {
 
     private static final Logger log = LoggerFactory.getLogger(ApiKeyEncryptionService.class);
 
-    private final AES256TextEncryptor encryptor;
+    private final BaitlySecretValueCodec encryptor;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ApiKeyEncryptionService(BaitlySecretValueCodec codec) { this.encryptor=codec; }
 
     public ApiKeyEncryptionService(
             @Value("${jasypt.encryptor.password}") String encryptorPassword) {
-        this.encryptor = new AES256TextEncryptor();
-        this.encryptor.setPassword(encryptorPassword);
+        this.encryptor = new BaitlySecretValueCodec(encryptorPassword,1,"","",false);
     }
 
     public String encrypt(String plain) {
@@ -42,8 +44,8 @@ public class ApiKeyEncryptionService {
         try {
             return encryptor.encrypt(plain);
         } catch (Exception e) {
-            log.error("API key encryption failed: {}", e.getMessage());
-            throw new IllegalStateException("API key encryption failed", e);
+            log.error("API key encryption failed");
+            throw new IllegalStateException("API key encryption failed");
         }
     }
 
@@ -54,8 +56,8 @@ public class ApiKeyEncryptionService {
         try {
             return encryptor.decrypt(encrypted);
         } catch (Exception e) {
-            log.error("API key decryption failed: {}", e.getMessage());
-            throw new IllegalStateException("API key decryption failed", e);
+            log.error("API key decryption failed");
+            throw new IllegalStateException("API key decryption failed");
         }
     }
 }

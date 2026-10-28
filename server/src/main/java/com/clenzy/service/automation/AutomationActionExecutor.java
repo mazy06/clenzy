@@ -27,13 +27,13 @@ import java.util.Objects;
  *       meme referentiel que {@code scheduled_at}) — pour un guard temporel pas encore
  *       atteint (ex. REVOKE_ACCESS_CODE avant check-out + grace), car SKIPPED/EXECUTED
  *       consommerait l'execution des triggers one-shot ;
- *       exception → statut FAILED avec message persiste. Jamais de no-op silencieux.</li>
+ *       exception → résultat incertain, diagnostic fixe sans rejeu automatique.</li>
  *   <li><b>Idempotence</b> : l'idempotence generique (regle x sujet) est portee par le
  *       moteur via {@code AutomationExecution} ; l'executeur ajoute sa propre cle metier
  *       en filet quand un doublon aurait un effet reel (creation d'entite, envoi).</li>
  *   <li><b>Contexte</b> : le moteur a deja pose le contexte tenant et, pour un sujet
  *       TYPE_RESERVATION, resolu {@code ctx.reservation()}. {@code ctx.data()} est
- *       VOLATILE (vide sur le chemin planifie/draine) — une action doit savoir se
+ *       chiffré pendant la mise en file ; une action doit aussi savoir se
  *       reconstruire a partir du sujet seul.</li>
  *   <li><b>Pas d'appel HTTP externe dans une transaction DB.</b></li>
  * </ul>
@@ -42,6 +42,9 @@ public interface AutomationActionExecutor {
 
     /** Action du moteur que cet executeur implemente (cle du registre). */
     AutomationAction action();
+
+    /** Only audited guards that run before any effect may requeue their execution. */
+    default boolean permitsPreEffectDeferral() { return false; }
 
     /**
      * Execute l'action pour une regle declenchee, dans le contexte donne.

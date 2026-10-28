@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -43,10 +42,13 @@ class ReportDocumentLifecycleTest {
         emailService = mock(EmailService.class);
         guard = mock(OrganizationAccessGuard.class);
 
-        service = new ReportDocumentService(null, null,
-                mock(com.clenzy.service.report.render.ReportPdfService.class),
+        var pdf = mock(com.clenzy.service.report.render.ReportPdfService.class);
+        when(pdf.toPdf(any(), any(), anyBoolean())).thenReturn(new byte[]{1, 2, 3});
+        service = new ReportDocumentService(null, null, pdf,
                 repository, null, null, null, guard, emailService,
-                new com.fasterxml.jackson.databind.ObjectMapper());
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                com.clenzy.service.automation.BaitlyExternalEffectTestSupport.journal(),
+                mock(org.springframework.transaction.PlatformTransactionManager.class));
 
         when(repository.save(any(ReportDocument.class))).thenAnswer(i -> i.getArgument(0));
     }
@@ -87,16 +89,7 @@ class ReportDocumentLifecycleTest {
         // qui l'a prise.
         given(draft());
 
-        // L'envoi differe le mail apres le commit : sans synchronisation active,
-        // `registerSynchronization` refuse. On en ouvre une, comme le ferait le
-        // proxy transactionnel de Spring.
-        TransactionSynchronizationManager.initSynchronization();
-        final ReportDocument sent;
-        try {
-            sent = service.send(1L, 7L, "kc-42", List.of());
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
+        final ReportDocument sent = service.send(1L, 7L, "kc-42", List.of());
 
         assertThat(sent.getStatus()).isEqualTo(ReportDocumentStatus.SENT);
         assertThat(sent.getSentAt()).isNotNull();

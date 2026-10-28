@@ -115,7 +115,8 @@ class UpdatePropertyStatusToolTest {
 
         ToolExecutionException ex = assertThrows(ToolExecutionException.class,
                 () -> tool.execute(validArgs(), ctx));
-        assertTrue(ex.getMessage().contains("DB down"));
+        assertFalse(ex.getMessage().contains("DB down"));
+        assertNull(ex.getCause());
         assertEquals("update_property_status", ex.getToolName());
     }
 

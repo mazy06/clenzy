@@ -116,16 +116,23 @@ class AssistantMemoryServiceTest {
 
     @Test
     void forget_existingKey_returnsTrue() {
-        when(repository.deleteByUserAndKey("user-1", "k")).thenReturn(1);
+        when(repository.findOwnedForDeletion(1L,"user-1","k")).thenReturn(Optional.of(newMemory(11L)));
+        when(repository.deleteOwnedById(1L,"user-1",11L)).thenReturn(1);
 
         assertTrue(service.forget(1L, "user-1", "k"));
     }
 
     @Test
     void forget_unknownKey_returnsFalse() {
-        when(repository.deleteByUserAndKey("user-1", "k")).thenReturn(0);
+        when(repository.findOwnedForDeletion(1L,"user-1","k")).thenReturn(Optional.empty());
 
         assertFalse(service.forget(1L, "user-1", "k"));
+    }
+    @Test void forget_rejectsMismatchedOwnerBeforeDeletion() {
+        var memory=newMemory(11L); memory.setOrganizationId(2L);
+        when(repository.findOwnedForDeletion(1L,"user-1","k")).thenReturn(Optional.of(memory));
+        assertThrows(IllegalStateException.class,()->service.forget(1L,"user-1","k"));
+        verify(repository,never()).deleteOwnedById(any(),any(),any());
     }
 
     @Test

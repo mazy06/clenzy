@@ -47,7 +47,7 @@ class AirbnbOAuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new AirbnbOAuthService(config, connectionRepository, encryptionService,
-                auditLogService, redisTemplate, restTemplate);
+                auditLogService, redisTemplate, restTemplate, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
     }
 
     // ===== GET AUTHORIZATION URL =====
@@ -90,18 +90,18 @@ class AirbnbOAuthServiceTest {
         @Test
         void whenValidState_thenReturnsUserIdAndDeletes() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:airbnb:state:valid-state")).thenReturn("user-1");
+            when(valueOps.getAndDelete("oauth:airbnb:state:valid-state")).thenReturn("user-1");
 
             String userId = service.validateAndConsumeState("valid-state");
 
             assertThat(userId).isEqualTo("user-1");
-            verify(redisTemplate).delete("oauth:airbnb:state:valid-state");
+            verify(valueOps).getAndDelete("oauth:airbnb:state:valid-state");
         }
 
         @Test
         void whenInvalidState_thenThrowsSecurityException() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:airbnb:state:invalid")).thenReturn(null);
+            when(valueOps.getAndDelete("oauth:airbnb:state:invalid")).thenReturn(null);
 
             assertThatThrownBy(() -> service.validateAndConsumeState("invalid"))
                     .isInstanceOf(SecurityException.class)
@@ -206,7 +206,7 @@ class AirbnbOAuthServiceTest {
 
             assertThatThrownBy(() -> service.refreshToken("user-1"))
                     .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("refresh token");
+                    .hasMessage(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -287,7 +287,7 @@ class AirbnbOAuthServiceTest {
             verify(connectionRepository).save(captor.capture());
             AirbnbConnection saved = captor.getValue();
             assertThat(saved.getStatus()).isEqualTo(AirbnbConnection.AirbnbConnectionStatus.EXPIRED);
-            assertThat(saved.getErrorMessage()).contains("Refresh");
+            assertThat(saved.getErrorMessage()).isEqualTo(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -455,7 +455,7 @@ class AirbnbOAuthServiceTest {
             service.revokeToken("user-1");
 
             assertThat(conn.getStatus()).isEqualTo(AirbnbConnection.AirbnbConnectionStatus.REVOKED);
-            assertThat(conn.getAccessTokenEncrypted()).isNull();
+            assertThat(conn.getAccessTokenEncrypted()).isEmpty();
             assertThat(conn.getRefreshTokenEncrypted()).isNull();
             assertThat(conn.getTokenExpiresAt()).isNull();
             verify(auditLogService).logSync(eq("AirbnbConnection"), anyString(), anyString());
@@ -583,4 +583,12 @@ class AirbnbOAuthServiceTest {
             assertThat(service.isConnected("user-1")).isFalse();
         }
     }
+    @Test void replayedStateCannotAuthorizeASecondCallback() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.getAndDelete(anyString())).thenReturn("user-1",null);
+        service.validateAndConsumeState("one-use");
+        assertThatThrownBy(() -> service.validateAndConsumeState("one-use")).isInstanceOf(SecurityException.class);
+        verify(valueOps,never()).get(anyString());verify(redisTemplate,never()).delete(anyString());
+    }
+
 }

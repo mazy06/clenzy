@@ -81,7 +81,21 @@ class InvoiceReminderExecutorTest {
         reservation.setId(42L);
         reservation.setOrganizationId(ORG_ID);
         reservation.setGuest(guest);
-        when(reservationRepository.findById(42L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(42L)).thenReturn(Optional.of(reservation));
+    }
+
+    @Test
+    void interventionRecipientIsLoadedWithTheInvoiceOrganizationBeforeSending() {
+        invoice.setReservationId(null);invoice.setInterventionId(77L);
+        when(invoiceRepository.findById(200L)).thenReturn(Optional.of(invoice));
+        var requestor=new com.clenzy.model.User();requestor.setEmail("recipe@example.invalid");
+        requestor.setFirstName("Recipe");requestor.setLastName("Buyer");
+        var intervention=new com.clenzy.model.Intervention();intervention.setOrganizationId(ORG_ID);intervention.setRequestor(requestor);
+        when(interventionRepository.findReminderRecipientByIdAndOrganizationId(77L,ORG_ID)).thenReturn(Optional.of(intervention));
+        assertThat(executor.execute(rule,invoiceCtx(200L)).skipped()).isFalse();
+        verify(emailService).sendContactMessage(eq("recipe@example.invalid"),anyString(),isNull(),isNull(),anyString(),anyString(),anyList());
+        verify(interventionRepository).findReminderRecipientByIdAndOrganizationId(77L,ORG_ID);
+        verifyNoInteractions(reservationRepository);
     }
 
     @Test
@@ -111,7 +125,7 @@ class InvoiceReminderExecutorTest {
         Reservation reservation = new Reservation();
         reservation.setOrganizationId(ORG_ID);
         reservation.setGuest(guest);
-        when(reservationRepository.findById(42L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(42L)).thenReturn(Optional.of(reservation));
 
         executor.execute(rule, invoiceCtx(200L));
 

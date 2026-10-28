@@ -129,13 +129,20 @@ class KafkaFlowIT {
     @Autowired private PropertyRepository propertyRepository;
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private javax.sql.DataSource dataSource;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.clenzy.service.assignment.AssignmentDeadlineDispatcher assignmentTimer;
 
     @Test
     void bookedEvent_flowsToCleaningRequest_andRedeliveryCreatesNoDuplicate() throws Exception {
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.install(dataSource);
         // ── Fixtures COMMITEES (le consumer Kafka lit dans sa propre transaction) ──
         Organization organization = organizationRepository.save(
             new Organization("Kafka Flow Org", OrganizationType.INDIVIDUAL, "kafka-flow-org"));
         Long orgId = organization.getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgId);
 
         User owner = new User("Kevin", "Kafka", "kevin.kafka@test.com", "password123");
         owner.setOrganizationId(orgId);
@@ -178,17 +185,21 @@ class KafkaFlowIT {
 
         // ── 1. BOOKED reel → listener → moteur → SR menage en base ──────────────
         publishBooked(property.getId(), orgId, CHECK_IN_1, CHECK_OUT_1, reservation1.getId());
-        await().atMost(Duration.ofSeconds(120)).untilAsserted(() ->
+        await().atMost(Duration.ofSeconds(120)).untilAsserted(() -> {
+            durableEngine.processScheduledExecutions();
             assertTrue(serviceRequestRepository.findByAutoFlowKey(key1, orgId).isPresent(),
-                "La demande de menage doit etre creee par le flux Kafka"));
+                "La demande de menage doit etre creee par le flux Kafka");
+        });
 
         // ── 2. Re-livraison du MEME message, puis message sentinelle (meme clef
         //       de partition → consomme APRES le doublon) ─────────────────────────
         publishBooked(property.getId(), orgId, CHECK_IN_1, CHECK_OUT_1, reservation1.getId());
         publishBooked(property.getId(), orgId, CHECK_IN_2, CHECK_OUT_2, reservation2.getId());
-        await().atMost(Duration.ofSeconds(120)).untilAsserted(() ->
+        await().atMost(Duration.ofSeconds(120)).untilAsserted(() -> {
+            durableEngine.processScheduledExecutions();
             assertTrue(serviceRequestRepository.findByAutoFlowKey(key2, orgId).isPresent(),
-                "Le message sentinelle doit etre traite"));
+                "Le message sentinelle doit etre traite");
+        });
 
         // ── 3. Toujours UNE SEULE execution / UNE SEULE SR pour la reservation 1 ──
         List<AutomationExecution> executions = executionRepository
@@ -201,6 +212,7 @@ class KafkaFlowIT {
             .filter(e -> reservation1Id.equals(e.getSubjectId())).count(),
             "Idempotence : une seule execution pour la reservation re-livree");
         assertTrue(serviceRequestRepository.findByAutoFlowKey(key1, orgId).isPresent());
+        assertEquals("MANUAL", serviceRequestRepository.findByAutoFlowKey(key1, orgId).orElseThrow().getAssignmentPhase());
     }
 
     /**

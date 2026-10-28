@@ -16,6 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.clenzy.service.automation.BaitlyExternalEffectJournal;
+import static com.clenzy.service.automation.BaitlyExternalEffectJournal.*;
+import java.util.UUID;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -63,6 +69,10 @@ public class SmartLockAccessCodeService {
     private final SmartLockAccessCodeJournal journal;
     private final SmartLockCodeDelivery delivery;
     private final SmartLockStayContext stayContext;
+    private final BaitlyExternalEffectJournal effects;
+    private final TransactionTemplate read;
+    private final TransactionTemplate write;
+    private final com.clenzy.repository.ReservationRepository reservations;
 
     public SmartLockAccessCodeService(SmartLockAccessCodeRepository codeRepo,
                                       SmartLockDeviceRepository deviceRepo,
@@ -70,7 +80,9 @@ public class SmartLockAccessCodeService {
                                       SmartLockCodeProvisioner provisioner,
                                       SmartLockAccessCodeJournal journal,
                                       SmartLockCodeDelivery delivery,
-                                      SmartLockStayContext stayContext) {
+                                      SmartLockStayContext stayContext, BaitlyExternalEffectJournal effects,
+                                      PlatformTransactionManager manager,
+                                      com.clenzy.repository.ReservationRepository reservations) {
         this.codeRepo = codeRepo;
         this.deviceRepo = deviceRepo;
         this.organizationAccessGuard = organizationAccessGuard;
@@ -78,6 +90,10 @@ public class SmartLockAccessCodeService {
         this.journal = journal;
         this.delivery = delivery;
         this.stayContext = stayContext;
+        this.effects = effects;
+        this.reservations = reservations;
+        this.read = new TransactionTemplate(manager); read.setReadOnly(true); read.setTimeout(10);
+        this.write = new TransactionTemplate(manager); write.setTimeout(10);
     }
 
     // ─── Isolation multi-tenant ─────────────────────────────────
@@ -107,22 +123,38 @@ public class SmartLockAccessCodeService {
 
     /**
      * Genere un code pour une reservation (fenetre check-in -> check-out+1) et
-     * notifie le voyageur. Ne JETTE PAS : un echec provider est trace
-     * (GENERATION_FAILED) mais ne doit pas bloquer la creation de la reservation.
+     * notifie le voyageur. Une panne fournisseur est tracee ; une tentative
+     * deja ouverte ou incertaine est refusee sans aucun nouvel appel.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public SmartLockAccessCode generateForReservation(Reservation reservation, SmartLockDevice device, CodeSource source) {
+        if (!java.util.Objects.equals(device.getOrganizationId(), reservation.getOrganizationId())
+                || reservation.getProperty() == null || !device.getPropertyId().equals(reservation.getProperty().getId()))
+            throw new org.springframework.security.access.AccessDeniedException("Serrure et reservation hors du meme perimetre");
         LocalDateTime from = reservation.getCheckIn().atStartOfDay();
         LocalDateTime until = reservation.getCheckOut().plusDays(1).atStartOfDay();
+        long epoch = revocationEpoch(reservation.getId(), device);
+        UUID window = UUID.nameUUIDFromBytes((from + ":" + until + ":" + epoch).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        Ticket ticket = effects.claim(new Scope(device.getOrganizationId(), Kind.LOCK, device.getId(),
+            Operation.CREATE, "reservation:" + reservation.getId() + ":" + window), () -> {
+                if (epoch != revocationEpoch(reservation.getId(), device)) throw new IllegalStateException("LOCK_SCOPE_CHANGED");
+            });
+        if (ticket.done()) return completedCode(ticket, device);
         String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Guest";
 
         SmartLockAccessCode created = createAndPersist(
-                device, reservation.getId(), from, until, source, "system", "Clenzy-" + guestName);
+                device, reservation.getId(), from, until, source, "system", "Baitly-" + guestName, ticket);
         if (created != null) {
             delivery.deliver(reservation, created, device.getOrganizationId(),
                     stayContext.nameOf(device.getPropertyId()));
         }
         return created;
+    }
+
+    private long revocationEpoch(Long reservationId, SmartLockDevice device) {
+        return read.execute(status -> codeRepo.findByReservationIdAndStatus(reservationId, CodeStatus.REVOKED).stream()
+            .filter(code -> device.getOrganizationId().equals(code.getOrganizationId()) && device.getId().equals(code.getDeviceId()))
+            .mapToLong(SmartLockAccessCode::getId).max().orElse(0));
     }
 
     // ─── Rotation manuelle ──────────────────────────────────────
@@ -134,46 +166,69 @@ public class SmartLockAccessCodeService {
      * code. Le nouveau code est donc rattache a son sejour et lui est envoye —
      * sans quoi la rotation le laisse dehors, en silence.</p>
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public SmartLockAccessCode rotateManual(Long deviceId, LocalDateTime validFrom, LocalDateTime validUntil,
                                             Long reservationId, String actor) {
-        SmartLockDevice device = loadDeviceForCurrentOrg(deviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        SmartLockDevice device = read.execute(status -> loadDeviceForCurrentOrg(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable")));
+        if (reservationId != null) read.executeWithoutResult(status -> {
+            Reservation stay = reservations.findById(reservationId).orElseThrow(
+                () -> new org.springframework.security.access.AccessDeniedException("Sejour inaccessible"));
+            if (!device.getOrganizationId().equals(stay.getOrganizationId())
+                    || stay.getProperty() == null || !device.getPropertyId().equals(stay.getProperty().getId()))
+                throw new org.springframework.security.access.AccessDeniedException("Sejour hors du perimetre de la serrure");
+        });
+        Ticket rotation = effects.claim(new Scope(device.getOrganizationId(), Kind.LOCK, deviceId,
+            Operation.ROTATE, "manual:" + UUID.randomUUID()));
+        try {
 
-        // Une seule fenetre active a la fois → revoque l'existant.
-        for (SmartLockAccessCode existing : codeRepo.findByDeviceIdAndStatus(deviceId, CodeStatus.ACTIVE)) {
-            revoke(existing, actor, SmartLockAccessCodeEvent.EventSource.MANUAL);
+            // Une seule fenetre active a la fois → revoque l'existant.
+            for (SmartLockAccessCode existing : read.execute(status -> codeRepo.findByDeviceIdAndStatus(deviceId, CodeStatus.ACTIVE))) {
+                revoke(existing, actor, SmartLockAccessCodeEvent.EventSource.MANUAL, rotation);
+            }
+
+            LocalDateTime from = validFrom != null ? validFrom : LocalDateTime.now();
+            LocalDateTime until = validUntil != null ? validUntil : from.plusDays(MANUAL_DEFAULT_DAYS);
+
+            Reservation ongoing = reservationId != null ? null : read.execute(status -> {
+                Reservation stay = stayContext.ongoingStayOf(device);
+                if (stay != null) {
+                    org.hibernate.Hibernate.initialize(stay.getGuest());
+                    org.hibernate.Hibernate.initialize(stay.getProperty());
+                    if (stay.getProperty() != null) org.hibernate.Hibernate.initialize(stay.getProperty().getOwner());
+                }
+                return stay;
+            });
+            Long effectiveReservationId = reservationId != null ? reservationId
+                    : (ongoing != null ? ongoing.getId() : null);
+
+            SmartLockAccessCode created = createAndPersist(
+                    device, effectiveReservationId, from, until, CodeSource.MANUAL, actor, "Baitly-Manuel", rotation);
+            if (created == null) {
+                throw new IllegalStateException("Echec de la generation du code Tuya");
+            }
+
+            String propertyName = stayContext.nameOf(device.getPropertyId());
+            if (ongoing != null) {
+                delivery.deliver(ongoing, created, device.getOrganizationId(), propertyName);
+            }
+            journal.announceManualRotation(device.getOrganizationId(), device.getId(), device.getName(),
+                    device.getPropertyId(), propertyName, journal.displayNameOf(actor), ongoing != null);
+            return created;
+        } catch (RuntimeException failure) {
+            markUncertain(rotation);
+            throw new IllegalStateException("LOCK_ROTATION_UNCONFIRMED");
         }
-
-        LocalDateTime from = validFrom != null ? validFrom : LocalDateTime.now();
-        LocalDateTime until = validUntil != null ? validUntil : from.plusDays(MANUAL_DEFAULT_DAYS);
-
-        Reservation ongoing = reservationId != null ? null : stayContext.ongoingStayOf(device);
-        Long effectiveReservationId = reservationId != null ? reservationId
-                : (ongoing != null ? ongoing.getId() : null);
-
-        SmartLockAccessCode created = createAndPersist(
-                device, effectiveReservationId, from, until, CodeSource.MANUAL, actor, "Clenzy-Manuel");
-        if (created == null) {
-            throw new IllegalStateException("Echec de la generation du code Tuya");
-        }
-
-        String propertyName = stayContext.nameOf(device.getPropertyId());
-        if (ongoing != null) {
-            delivery.deliver(ongoing, created, device.getOrganizationId(), propertyName);
-        }
-        journal.announceManualRotation(device.getOrganizationId(), device.getId(), device.getName(),
-                device.getPropertyId(), propertyName, journal.displayNameOf(actor), ongoing != null);
-        return created;
     }
 
     // ─── Revocation ─────────────────────────────────────────────
 
-    /** Revoque tous les codes actifs d'une reservation (annulation). Best-effort. */
-    @Transactional
+    /** Revoque les codes actifs ; une issue incertaine reste bloquee sans nouvel appel. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeForReservation(Long reservationId, String actor) {
-        for (SmartLockAccessCode code : codeRepo.findByReservationIdAndStatus(reservationId, CodeStatus.ACTIVE)) {
-            revoke(code, actor, SmartLockAccessCodeEvent.EventSource.AUTO_RESERVATION);
+        for (SmartLockAccessCode code : read.execute(status -> codeRepo.findByReservationIdAndStatus(reservationId, CodeStatus.ACTIVE))) {
+            organizationAccessGuard.requireSameOrganization(code.getOrganizationId(), "Code hors de votre organisation");
+            revoke(code, actor, SmartLockAccessCodeEvent.EventSource.AUTO_RESERVATION, null);
         }
     }
 
@@ -181,42 +236,53 @@ public class SmartLockAccessCodeService {
      * Revoque le code actif courant d'une serrure (action manuelle).
      * Appele depuis HTTP avec un {@code deviceId} d'URL → ownership org verifie.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeForDevice(Long deviceId, String actor) {
-        if (loadDeviceForCurrentOrg(deviceId).isEmpty()) {
+        if (read.execute(status -> loadDeviceForCurrentOrg(deviceId)).isEmpty()) {
             return;
         }
-        for (SmartLockAccessCode code : codeRepo.findByDeviceIdAndStatus(deviceId, CodeStatus.ACTIVE)) {
-            revoke(code, actor, SmartLockAccessCodeEvent.EventSource.MANUAL);
+        for (SmartLockAccessCode code : read.execute(status -> codeRepo.findByDeviceIdAndStatus(deviceId, CodeStatus.ACTIVE))) {
+            revoke(code, actor, SmartLockAccessCodeEvent.EventSource.MANUAL, null);
         }
     }
 
-    /**
-     * Revocation d'un code : la serrure d'abord, l'etat local ensuite.
-     *
-     * <p>Un echec cote fournisseur ne fait PAS echouer la revocation locale — le
-     * code expire de toute facon a la fin de sa fenetre, et laisser l'etat local
-     * mentir serait pire que le laisser en avance.</p>
-     */
-    private void revoke(SmartLockAccessCode code, String actor, SmartLockAccessCodeEvent.EventSource source) {
-        if (code.getStatus() != CodeStatus.ACTIVE) {
-            return;
+    /** No local revocation without a positive provider result; an uncertain fence never expires. */
+    private void revoke(SmartLockAccessCode code, String actor, SmartLockAccessCodeEvent.EventSource source,
+                        Ticket rotation) {
+        Ticket ticket = rotation != null ? rotation : effects.claim(new Scope(
+            code.getOrganizationId(), Kind.LOCK, code.getDeviceId(), Operation.REVOKE, String.valueOf(code.getId())));
+        if (ticket.done()) return;
+        try {
+            SmartLockDevice device = read.execute(status -> deviceRepo.findById(code.getDeviceId()).orElseThrow());
+            if (!code.getOrganizationId().equals(device.getOrganizationId())
+                    || !java.util.Objects.equals(code.getPropertyId(), device.getPropertyId()))
+                throw new IllegalStateException("LOCK_SCOPE_INVALID");
+            provisioner.remove(device, code.getTuyaPasswordId());
+            java.util.function.Supplier<SmartLockAccessCode> save = () -> {
+                code.setStatus(CodeStatus.REVOKED); code.setRevokedAt(LocalDateTime.now());
+                SmartLockAccessCode saved = codeRepo.save(code);
+                journal.record(saved, EventType.CODE_REVOKED, source, "Revocation fournisseur confirmee");
+                journal.publish(saved, "CODE_REVOKED");
+                return saved;
+            };
+            if (rotation == null) effects.complete(ticket, save, SmartLockAccessCode::getId);
+            else write.execute(status -> save.get());
+        } catch (RuntimeException failure) {
+            markUncertain(ticket);
+            throw new IllegalStateException("LOCK_REVOCATION_UNCONFIRMED");
         }
-        SmartLockDevice device = deviceRepo.findById(code.getDeviceId()).orElse(null);
-        provisioner.remove(device, code.getTuyaPasswordId());
+    }
 
-        code.setStatus(CodeStatus.REVOKED);
-        code.setRevokedAt(LocalDateTime.now());
-        codeRepo.save(code);
+    private SmartLockAccessCode completedCode(Ticket ticket, SmartLockDevice device) {
+        return read.execute(status -> codeRepo.findById(ticket.reference())
+            .filter(code -> device.getOrganizationId().equals(code.getOrganizationId())
+                && device.getId().equals(code.getDeviceId()))
+            .orElseThrow(() -> new IllegalStateException("LOCK_RESULT_RECONCILIATION_REQUIRED")));
+    }
 
-        // Le journal garde un NOM quand il y en a un : « Code revoque par
-        // 44bfc16a-5ceb-… » ne dit a personne QUI a agi. L'identifiant reste le
-        // repli quand l'auteur n'est pas un utilisateur connu (« system »).
-        String actorName = journal.displayNameOf(actor);
-        journal.record(code, EventType.CODE_REVOKED, source,
-                "Code revoque par " + (actorName != null ? actorName : (actor != null ? actor : "system")),
-                actorName);
-        journal.publish(code, "CODE_REVOKED");
+    private void markUncertain(Ticket ticket) {
+        try { effects.uncertain(ticket); }
+        catch (RuntimeException failure) { log.warn("Baitly lock outcome remains fenced"); }
     }
 
     // ─── Lecture ────────────────────────────────────────────────
@@ -296,11 +362,12 @@ public class SmartLockAccessCodeService {
      */
     private SmartLockAccessCode createAndPersist(SmartLockDevice device, Long reservationId,
                                                  LocalDateTime validFrom, LocalDateTime validUntil,
-                                                 CodeSource source, String createdBy, String name) {
+                                                 CodeSource source, String createdBy, String name, Ticket ticket) {
         Long orgId = device.getOrganizationId();
         SmartLockAccessCodeEvent.EventSource eventSource = SmartLockCodeDelivery.eventSource(source);
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isBlank()) {
+            markUncertain(ticket);
             journal.recordGenerationFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
                     eventSource, "Pas d'ID device Tuya configure", stayContext.nameOf(device.getPropertyId()));
             return null;
@@ -309,33 +376,38 @@ public class SmartLockAccessCodeService {
             SmartLockCodeProvisioner.PlacedCode placed = provisioner.place(
                     device, name, validFrom, validUntil, stayContext.zoneOf(device.getPropertyId()));
 
-            SmartLockAccessCode code = new SmartLockAccessCode();
-            code.setOrganizationId(orgId);
-            code.setDeviceId(device.getId());
-            code.setReservationId(reservationId);
-            code.setPropertyId(device.getPropertyId());
-            code.setName(name);
-            code.setCode(placed.pin());
-            // Id externe du code chez le provider (mot de passe Tuya OU code Web API Nuki) — requis pour la révocation.
-            code.setTuyaPasswordId(placed.externalCodeId());
-            code.setValidFrom(validFrom);
-            code.setValidUntil(validUntil);
-            code.setStatus(CodeStatus.ACTIVE);
-            code.setSource(source);
-            code.setCreatedBy(createdBy);
-            SmartLockAccessCode saved = codeRepo.save(code);
+            if (placed == null || placed.pin() == null || placed.pin().isBlank()
+                    || placed.externalCodeId() == null || placed.externalCodeId().isBlank())
+                throw new IllegalStateException("LOCK_CREATION_UNCONFIRMED");
+            return effects.complete(ticket, () -> {
+                SmartLockAccessCode code = new SmartLockAccessCode();
+                code.setOrganizationId(orgId);
+                code.setDeviceId(device.getId());
+                code.setReservationId(reservationId);
+                code.setPropertyId(device.getPropertyId());
+                code.setName(name);
+                code.setCode(placed.pin());
+                // Id externe du code chez le provider (mot de passe Tuya OU code Web API Nuki) — requis pour la révocation.
+                code.setTuyaPasswordId(placed.externalCodeId());
+                code.setValidFrom(validFrom);
+                code.setValidUntil(validUntil);
+                code.setStatus(CodeStatus.ACTIVE);
+                code.setSource(source);
+                code.setCreatedBy(createdBy);
+                SmartLockAccessCode saved = codeRepo.save(code);
 
-            journal.record(saved, EventType.CODE_GENERATED, eventSource, "Code genere",
-                    journal.displayNameOf(createdBy));
-            journal.publish(saved, "CODE_GENERATED");
-            log.info("Code d'acces genere (code={}, device={}, reservation={}, source={})",
-                    saved.getId(), device.getId(), reservationId, source);
-            return saved;
+                journal.record(saved, EventType.CODE_GENERATED, eventSource, "Code genere",
+                        journal.displayNameOf(createdBy));
+                journal.publish(saved, "CODE_GENERATED");
+                log.info("Code d'acces genere (code={}, device={}, reservation={}, source={})",
+                        saved.getId(), device.getId(), reservationId, source);
+                return saved;
+            }, SmartLockAccessCode::getId);
         } catch (Exception e) {
-            log.error("Echec generation code serrure device={} reservation={}: {}",
-                    device.getId(), reservationId, e.getMessage());
+            markUncertain(ticket);
+            log.warn("Baitly lock creation unconfirmed");
             journal.recordGenerationFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
-                    eventSource, "Echec provider: " + e.getMessage(), stayContext.nameOf(device.getPropertyId()));
+                    eventSource, "LOCK_CREATION_UNCONFIRMED", stayContext.nameOf(device.getPropertyId()));
             return null;
         }
     }

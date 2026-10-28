@@ -52,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ScenarioConstellationHitlIT extends AbstractIntegrationTest {
 
     @Autowired private AutomationEngine automationEngine;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private SupervisionSuggestionService suggestionService;
     @Autowired private SupervisionActivityService activityService;
     @Autowired private OrganizationRepository organizationRepository;
@@ -137,6 +138,7 @@ class ScenarioConstellationHitlIT extends AbstractIntegrationTest {
         // Le flux déterministe se déclenche (aucune IA, aucun token).
         automationEngine.fireTrigger(AutomationTrigger.RESERVATION_CANCELLED, orgAId,
                 new AutomationSubject(AutomationSubject.TYPE_RESERVATION, reservationA.getId(), Map.of()));
+        durableEngine.processScheduledExecutions();
 
         // 1) La carte HITL arrive dans la Constellation (source = suggestionService.list).
         List<SupervisionSuggestionDto> cards = suggestionService.list(orgAId, propertyA.getId());

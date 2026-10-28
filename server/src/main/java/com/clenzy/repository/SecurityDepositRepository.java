@@ -43,6 +43,8 @@ public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit
                                                     @Param("staleBefore") LocalDate staleBefore);
 
 
+    // Automated suggestion executors run outside provider transactions.
+    @Transactional(readOnly = true)
     Optional<SecurityDeposit> findByOrganizationIdAndReservationId(Long organizationId, Long reservationId);
 
     Optional<SecurityDeposit> findByIdAndOrganizationId(Long id, Long organizationId);

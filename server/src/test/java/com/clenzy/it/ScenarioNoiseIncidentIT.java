@@ -56,7 +56,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * Scenario S2 — incident bruit : 3 alertes en 24 h → UN SEUL message voyageur
- * (claim Redis atomique) → escalade par condition numerique
+ * (journal PostgreSQL durable) → escalade par condition numerique
  * ({@code alertsLast24h >= 3}) → NOTIFY_STAFF + suggestion de blocage calendrier
  * → apply de la suggestion → {@code CalendarEngine.block} effectif (CalendarDay
  * BLOCKED en base).
@@ -68,6 +68,8 @@ import static org.mockito.Mockito.verify;
 class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
 
     @Autowired private NoiseAlertService noiseAlertService;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
+    @Autowired private javax.sql.DataSource dataSource;
     @Autowired private SupervisionSuggestionService suggestionService;
 
     @Autowired private OrganizationRepository organizationRepository;
@@ -89,8 +91,25 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
     private Long orgBId;
     private Long propertyId;
 
+    private void ensureWarningJournal() {
+        // Hibernate create-drop ne cree pas le journal JDBC ; appliquer son vrai changeset de recette.
+        try(var connection=dataSource.getConnection()) {
+            var database=liquibase.database.DatabaseFactory.getInstance()
+                .findCorrectDatabaseImplementation(new liquibase.database.jvm.JdbcConnection(connection));
+            var resources=new liquibase.resource.ClassLoaderResourceAccessor();
+            try(var master=new liquibase.Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
+                var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
+                master.getDatabaseChangeLog().getChangeSets().stream()
+                    .filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index").contains(set.getId())).forEach(selected::addChangeSet);
+                if(selected.getChangeSets().size()!=3) throw new IllegalStateException("Trois changesets de recette requis");
+                new liquibase.Liquibase(selected,resources,database).update("");
+            }
+        } catch(Exception failure) { throw new IllegalStateException("Migration de recette avertissements echouee",failure); }
+    }
+
     @BeforeEach
     void seedNoiseSetup() {
+        ensureWarningJournal();
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(
                 "Noise A " + salt, OrganizationType.INDIVIDUAL, "noise-a-" + salt)).getId();
@@ -201,8 +220,9 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(third).isNotNull();
+        durableEngine.processScheduledExecutions();
 
-        // ── UN SEUL message voyageur (claim Redis) : 1 EXECUTED, 2 SKIPPED. ──
+        // ── UN SEUL message voyageur (journal PostgreSQL durable) : 1 EXECUTED, 2 SKIPPED. ──
         List<AutomationExecution> warnings = executionsFor(orgAId, AutomationAction.SEND_NOISE_WARNING);
         assertThat(warnings).hasSize(3);
         assertThat(warnings.stream()

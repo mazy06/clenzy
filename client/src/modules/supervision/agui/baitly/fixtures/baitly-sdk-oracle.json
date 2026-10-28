@@ -1,0 +1,473 @@
+{
+  "reference": "@ag-ui/client 1.0.2, synthetic pre-removal oracle",
+  "frames": [
+    {
+      "type": "RUN_STARTED",
+      "threadId": "baitly-oracle-thread",
+      "runId": "baitly-oracle-run"
+    },
+    {
+      "type": "STATE_SNAPSHOT",
+      "snapshot": {
+        "phase": "thinking",
+        "count": 0
+      }
+    },
+    {
+      "type": "STATE_DELTA",
+      "delta": [
+        {
+          "op": "replace",
+          "path": "/count",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "type": "TEXT_MESSAGE_START",
+      "messageId": "reply",
+      "role": "assistant"
+    },
+    {
+      "type": "TEXT_MESSAGE_CONTENT",
+      "messageId": "reply",
+      "delta": "Recette العربية"
+    },
+    {
+      "type": "TEXT_MESSAGE_END",
+      "messageId": "reply"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-list",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-list",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-list"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-list",
+      "messageId": "result-list",
+      "role": "tool",
+      "content": "{\"displayHint\":\"list\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-details",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-details",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-details"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-details",
+      "messageId": "result-details",
+      "role": "tool",
+      "content": "{\"displayHint\":\"details\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-chart_bar",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-chart_bar",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-chart_bar"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-chart_bar",
+      "messageId": "result-chart_bar",
+      "role": "tool",
+      "content": "{\"displayHint\":\"chart_bar\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-kpi_summary",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-kpi_summary",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-kpi_summary"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-kpi_summary",
+      "messageId": "result-kpi_summary",
+      "role": "tool",
+      "content": "{\"displayHint\":\"kpi_summary\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-data_table",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-data_table",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-data_table"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-data_table",
+      "messageId": "result-data_table",
+      "role": "tool",
+      "content": "{\"displayHint\":\"data_table\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-availability",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-availability",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-availability"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-availability",
+      "messageId": "result-availability",
+      "role": "tool",
+      "content": "{\"displayHint\":\"availability\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-quote",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-quote",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-quote"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-quote",
+      "messageId": "result-quote",
+      "role": "tool",
+      "content": "{\"displayHint\":\"quote\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-summary",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-summary",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-summary"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-summary",
+      "messageId": "result-summary",
+      "role": "tool",
+      "content": "{\"displayHint\":\"summary\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-navigation",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-navigation",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-navigation"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "toolCallId": "tool-navigation",
+      "messageId": "result-navigation",
+      "role": "tool",
+      "content": "{\"displayHint\":\"navigation\",\"isError\":false,\"data\":{\"fixture\":true}}"
+    },
+    {
+      "type": "RUN_FINISHED",
+      "threadId": "baitly-oracle-thread",
+      "runId": "baitly-oracle-run",
+      "outcome": {
+        "type": "success"
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "RUN_STARTED",
+      "threadId": "baitly-oracle-thread",
+      "runId": "baitly-oracle-run"
+    },
+    {
+      "type": "STATE_SNAPSHOT",
+      "snapshot": {
+        "phase": "thinking",
+        "count": 0
+      }
+    },
+    {
+      "type": "STATE_DELTA",
+      "delta": [
+        {
+          "op": "replace",
+          "path": "/count",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "type": "TEXT_MESSAGE_START",
+      "messageId": "reply",
+      "role": "assistant"
+    },
+    {
+      "type": "TEXT_MESSAGE_CONTENT",
+      "messageId": "reply",
+      "delta": "Recette العربية"
+    },
+    {
+      "type": "TEXT_MESSAGE_END",
+      "messageId": "reply"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-list",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-list",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-list"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-list",
+      "toolCallId": "tool-list",
+      "content": "{\"displayHint\":\"list\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-details",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-details",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-details"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-details",
+      "toolCallId": "tool-details",
+      "content": "{\"displayHint\":\"details\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-chart_bar",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-chart_bar",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-chart_bar"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-chart_bar",
+      "toolCallId": "tool-chart_bar",
+      "content": "{\"displayHint\":\"chart_bar\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-kpi_summary",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-kpi_summary",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-kpi_summary"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-kpi_summary",
+      "toolCallId": "tool-kpi_summary",
+      "content": "{\"displayHint\":\"kpi_summary\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-data_table",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-data_table",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-data_table"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-data_table",
+      "toolCallId": "tool-data_table",
+      "content": "{\"displayHint\":\"data_table\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-availability",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-availability",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-availability"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-availability",
+      "toolCallId": "tool-availability",
+      "content": "{\"displayHint\":\"availability\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-quote",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-quote",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-quote"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-quote",
+      "toolCallId": "tool-quote",
+      "content": "{\"displayHint\":\"quote\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-summary",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-summary",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-summary"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-summary",
+      "toolCallId": "tool-summary",
+      "content": "{\"displayHint\":\"summary\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "TOOL_CALL_START",
+      "toolCallId": "tool-navigation",
+      "toolCallName": "synthetic_action"
+    },
+    {
+      "type": "TOOL_CALL_ARGS",
+      "toolCallId": "tool-navigation",
+      "delta": "{\"fixture\":true}"
+    },
+    {
+      "type": "TOOL_CALL_END",
+      "toolCallId": "tool-navigation"
+    },
+    {
+      "type": "TOOL_CALL_RESULT",
+      "messageId": "result-navigation",
+      "toolCallId": "tool-navigation",
+      "content": "{\"displayHint\":\"navigation\",\"isError\":false,\"data\":{\"fixture\":true}}",
+      "role": "tool"
+    },
+    {
+      "type": "RUN_FINISHED",
+      "threadId": "baitly-oracle-thread",
+      "runId": "baitly-oracle-run",
+      "outcome": {
+        "type": "success"
+      }
+    }
+  ]
+}

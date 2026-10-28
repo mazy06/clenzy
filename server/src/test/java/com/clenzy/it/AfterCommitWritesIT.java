@@ -128,6 +128,7 @@ class AfterCommitWritesIT extends AbstractIntegrationTest {
         owner = userRepository.save(owner);
         property = new Property("Studio " + salt, "3 rue C", 1, 1, owner);
         property.setOrganizationId(org.getId());
+        property.setCountryCode("FR");
         property = propertyRepository.save(property);
     }
 
@@ -196,6 +197,8 @@ class AfterCommitWritesIT extends AbstractIntegrationTest {
     void whenImportedOtaReservationIsInvoicedAfterCommit_thenItsInvoiceIsCommitted() {
         FiscalProfile profile = new FiscalProfile();
         profile.setOrganizationId(org.getId());
+        profile.setLegalEntityName("Baitly recipe issuer");
+        profile.setLegalAddress("1 rue de recette, Paris");
         fiscalProfileRepository.save(profile);
         // Référentiel fiscal global (seedé par Liquibase hors test) : une seule règle, sans doublon.
         LocalDate since = LocalDate.now().minusYears(1);
@@ -238,6 +241,7 @@ class AfterCommitWritesIT extends AbstractIntegrationTest {
         reservation.setCheckIn(LocalDate.now().plusDays(20));
         reservation.setCheckOut(LocalDate.now().plusDays(23));
         reservation.setStatus("pending");
+        reservation.setPaymentStatus(com.clenzy.model.PaymentStatus.PENDING);
         reservation.setTotalPrice(new BigDecimal("420.00"));
         reservation.setCurrency("EUR");
         reservation.setConfirmationCode("PC-" + salt);

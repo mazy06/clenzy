@@ -54,8 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * reels, pas de mocks du moteur.
  *
  * <p>Couvre : creation du menage post-checkout (F1a), idempotence one-shot
- * (re-livraison = zero doublon), absence de dedup moteur pour les declencheurs
- * recurrents (INVOICE_OVERDUE — la cle metier de l'executeur prend le relais),
+ * (re-livraison = zero doublon), déduplication par occurrence pour les déclencheurs récurrents,
  * persistance EXECUTED/SKIPPED, conditions numeriques (alertsLast24h) et
  * etancheite cross-organisation.</p>
  */
@@ -67,6 +66,7 @@ class AutomationEngineIT extends AbstractIntegrationTest {
     private static final LocalDate CHECK_OUT = LocalDate.of(2027, 8, 14);
 
     @Autowired private AutomationEngine automationEngine;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private AutomationRuleRepository ruleRepository;
     @Autowired private AutomationExecutionRepository executionRepository;
     @Autowired private ServiceRequestRepository serviceRequestRepository;
@@ -76,6 +76,8 @@ class AutomationEngineIT extends AbstractIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private InvoiceRepository invoiceRepository;
     @Autowired private Clock clock;
+    @Autowired private javax.sql.DataSource dataSource;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
 
     private Long orgAId;
     private Long orgBId;
@@ -84,16 +86,18 @@ class AutomationEngineIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void createTestData() {
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.install(dataSource);
         Organization orgA = organizationRepository.save(
-            new Organization("Automation Org A", OrganizationType.INDIVIDUAL, "automation-org-a"));
+            new Organization("Automation Org A", OrganizationType.INDIVIDUAL, "automation-org-a-"+java.util.UUID.randomUUID()));
         orgAId = orgA.getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgAId);
         Organization orgB = organizationRepository.save(
-            new Organization("Automation Org B", OrganizationType.INDIVIDUAL, "automation-org-b"));
+            new Organization("Automation Org B", OrganizationType.INDIVIDUAL, "automation-org-b-"+java.util.UUID.randomUUID()));
         orgBId = orgB.getId();
 
-        User ownerA = new User("Alice", "Automation", "alice.automation@test.com", "password123");
+        User ownerA = new User("Alice", "Automation", "alice.automation."+java.util.UUID.randomUUID()+"@example.invalid", "password123");
         ownerA.setOrganizationId(orgAId);
-        ownerA.setKeycloakId("kc-automation-a");
+        ownerA.setKeycloakId("kc-automation-a-"+java.util.UUID.randomUUID());
         userRepository.save(ownerA);
 
         propertyA = new Property("Loft Automation", "1 rue des Flux", 2, 1, ownerA);
@@ -116,13 +120,14 @@ class AutomationEngineIT extends AbstractIntegrationTest {
     void bookedTrigger_createsCleaningRequestAtCheckout_andRedeliveryCreatesNoDuplicate() {
         AutomationRule rule = cleaningRule(orgAId, null);
 
-        automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgAId,
+        fireAndDrain(AutomationTrigger.RESERVATION_BOOKED, orgAId,
             reservationSubject(reservationA));
 
         String key = ServiceRequestService.buildAutoCleaningKey(propertyA.getId(), CHECK_IN, CHECK_OUT);
         Optional<ServiceRequest> sr = serviceRequestRepository.findByAutoFlowKey(key, orgAId);
         assertTrue(sr.isPresent(), "La demande de menage automatique doit etre creee");
         assertNotNull(sr.get().getDesiredDate());
+        assertEquals("MANUAL", sr.get().getAssignmentPhase(), "La politique manuelle réelle doit être appliquée");
         assertEquals(CHECK_OUT, sr.get().getDesiredDate().toLocalDate(),
             "Le menage doit etre planifie au jour du check-out");
 
@@ -131,7 +136,7 @@ class AutomationEngineIT extends AbstractIntegrationTest {
         assertEquals(AutomationExecutionStatus.EXECUTED, executions.get(0).getStatus());
 
         // Re-livraison Kafka simulee : MEME sujet re-declenche → dedup one-shot.
-        automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgAId,
+        fireAndDrain(AutomationTrigger.RESERVATION_BOOKED, orgAId,
             reservationSubject(reservationA));
 
         assertEquals(1, executionsOf(rule).size(), "Une seule execution apres re-livraison (dedup one-shot)");
@@ -149,17 +154,15 @@ class AutomationEngineIT extends AbstractIntegrationTest {
         AutomationSubject subject = new AutomationSubject(AutomationSubject.TYPE_INVOICE,
             invoice.getId(), Map.of(AutomationSubject.DATA_DAYS_OVERDUE, 5L));
 
-        automationEngine.fireTrigger(AutomationTrigger.INVOICE_OVERDUE, orgAId, subject);
-        automationEngine.fireTrigger(AutomationTrigger.INVOICE_OVERDUE, orgAId, subject);
+        fireAndDrain(AutomationTrigger.INVOICE_OVERDUE, orgAId, subject);
+        fireAndDrain(AutomationTrigger.INVOICE_OVERDUE, orgAId, subject);
 
         List<AutomationExecution> executions = executionsOf(rule);
-        assertEquals(2, executions.size(),
-            "INVOICE_OVERDUE est recurrent : le moteur ne deduplique pas, 2 executions attendues");
-        // 1er passage : relance J+3 envoyee (EXECUTED). 2e passage : la cle metier
-        // de l'executeur (compteur + anti-rafale 24 h en base) prend le relais → SKIPPED.
+        assertEquals(1, executions.size(), "Une occurrence quotidienne durable, même après re-livraison");
+        // Une occurrence quotidienne commitée, sans seconde ligne ni second envoi.
         assertEquals(1, executions.stream()
             .filter(e -> e.getStatus() == AutomationExecutionStatus.EXECUTED).count());
-        assertEquals(1, executions.stream()
+        assertEquals(0, executions.stream()
             .filter(e -> e.getStatus() == AutomationExecutionStatus.SKIPPED).count());
         assertEquals(1, invoiceRepository.findById(invoice.getId()).orElseThrow()
             .getOverdueReminderCount(), "Une seule relance reellement consommee");
@@ -181,15 +184,19 @@ class AutomationEngineIT extends AbstractIntegrationTest {
 
         AutomationRule rule = cleaningRule(orgAId, null);
 
-        automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgAId,
+        fireAndDrain(AutomationTrigger.RESERVATION_BOOKED, orgAId,
             reservationSubject(reservation));
 
         List<AutomationExecution> executions = executionsOf(rule);
         assertEquals(1, executions.size());
         assertEquals(AutomationExecutionStatus.SKIPPED, executions.get(0).getStatus());
-        assertNotNull(executions.get(0).getErrorMessage(), "La raison du skip doit etre persistee");
-        assertTrue(executions.get(0).getErrorMessage().contains("frequence"),
-            "Raison inattendue : " + executions.get(0).getErrorMessage());
+        assertEquals("AUTOMATION_SKIPPED", executions.get(0).getErrorMessage(),
+            "Le diagnostic durable est un code fixe, sans texte métier libre");
+        assertEquals(1, new org.springframework.jdbc.core.JdbcTemplate(dataSource).queryForObject(
+            "SELECT count(*) FROM baitly_automation_outcome_proofs WHERE execution_id=? AND organization_id=? "
+                + "AND outcome='SKIPPED' AND disputed=false AND applied_at IS NOT NULL AND apply_mode='NORMAL'",
+            Integer.class, executions.get(0).getId(), orgAId),
+            "Le statut doit avoir une preuve durable appliquée au même périmètre");
         assertEquals(0, cleaningRequestCount(orgAId), "Aucune demande de menage pour une frequence WEEKLY");
     }
 
@@ -201,12 +208,12 @@ class AutomationEngineIT extends AbstractIntegrationTest {
             AutomationAction.NOTIFY_STAFF, "{\"alertsLast24h\": {\"gte\": 3}}");
 
         // 2 alertes en 24 h : condition non satisfaite → AUCUNE execution creee.
-        automationEngine.fireTrigger(AutomationTrigger.NOISE_ALERT, orgAId,
+        fireAndDrain(AutomationTrigger.NOISE_ALERT, orgAId,
             noiseSubject(9001L, 2));
         assertEquals(0, executionsOf(rule).size());
 
         // 3 alertes : seuil atteint → execution EXECUTED.
-        automationEngine.fireTrigger(AutomationTrigger.NOISE_ALERT, orgAId,
+        fireAndDrain(AutomationTrigger.NOISE_ALERT, orgAId,
             noiseSubject(9002L, 3));
         List<AutomationExecution> executions = executionsOf(rule);
         assertEquals(1, executions.size());
@@ -223,7 +230,7 @@ class AutomationEngineIT extends AbstractIntegrationTest {
         // Declenchement au nom de l'org B sur une reservation de l'org A :
         // l'ownership check du moteur (findById contourne le filtre Hibernate) refuse.
         assertThrows(AccessDeniedException.class, () ->
-            automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgBId,
+            fireAndDrain(AutomationTrigger.RESERVATION_BOOKED, orgBId,
                 reservationSubject(reservationA)));
 
         assertEquals(0, executionsOf(ruleB).size(), "Aucune execution persistee pour l'org B");
@@ -293,4 +300,12 @@ class AutomationEngineIT extends AbstractIntegrationTest {
             .filter(sr -> sr.getAutoFlowKey() != null)
             .count();
     }
+    private void fireAndDrain(AutomationTrigger trigger, Long organizationId, AutomationSubject subject) {
+        automationEngine.fireTrigger(trigger,organizationId,subject);
+        org.springframework.test.context.transaction.TestTransaction.flagForCommit();
+        org.springframework.test.context.transaction.TestTransaction.end();
+        durableEngine.processScheduledExecutions();
+        org.springframework.test.context.transaction.TestTransaction.start();
+    }
+
 }

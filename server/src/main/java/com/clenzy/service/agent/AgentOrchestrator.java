@@ -110,6 +110,10 @@ public class AgentOrchestrator {
      * Null sur le chemin legacy test-only.
      */
     private final ConversationSummaryService conversationSummaryService;
+    private BaitlyChatCompletionJournal completionJournal;
+
+    /** Explicit test seam; production uses the mandatory constructor dependency. */
+    void configureBaitlyChatCompletionJournal(BaitlyChatCompletionJournal journal) { this.completionJournal=journal; }
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -126,7 +130,8 @@ public class AgentOrchestrator {
                               IntentRouter intentRouter,
                               AgentRunRecorder agentRunRecorder,
                               com.clenzy.service.ai.RunCreditGuard runCreditGuard,
-                              ConversationSummaryService conversationSummaryService) {
+                              ConversationSummaryService conversationSummaryService,
+                              BaitlyChatCompletionJournal completionJournal) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -141,6 +146,21 @@ public class AgentOrchestrator {
         this.agentRunRecorder = agentRunRecorder;
         this.runCreditGuard = runCreditGuard;
         this.conversationSummaryService = conversationSummaryService;
+        this.completionJournal=completionJournal;
+    }
+
+    /** Compatibility constructor for existing explicit unit fixtures. */
+    public AgentOrchestrator(ToolRegistry toolRegistry, AssistantConversationRepository conversationRepository,
+                              AssistantMessageRepository messageRepository, PendingToolStore pendingToolStore,
+                              AgentPromptComposer promptComposer, AiTargetResolver targetResolver,
+                              AgentToolLoopRunner toolLoopRunner, ConversationHistoryMapper historyMapper,
+                              MultiAgentFlowRunner multiAgentFlowRunner, AiTokenBudgetService tokenBudgetService,
+                              IntentRouter intentRouter, AgentRunRecorder agentRunRecorder,
+                              com.clenzy.service.ai.RunCreditGuard runCreditGuard,
+                              ConversationSummaryService conversationSummaryService) {
+        this(toolRegistry,conversationRepository,messageRepository,pendingToolStore,promptComposer,targetResolver,
+                toolLoopRunner,historyMapper,multiAgentFlowRunner,tokenBudgetService,intentRouter,agentRunRecorder,
+                runCreditGuard,conversationSummaryService,null);
     }
 
     /**
@@ -251,6 +271,9 @@ public class AgentOrchestrator {
 
         // 1. Resoudre la conversation (creer si null)
         AssistantConversation conversation = resolveOrCreateConversation(conversationId, context);
+        if(completionJournal!=null && !BaitlyChatTurnObservation.active()) {
+            completionJournal.requireLegacyUntracked(context.organizationId(),context.keycloakId(),conversation.getId(),null);
+        }
         if (conversationId == null) {
             consumer.accept(AgentSseEvent.conversationCreated(conversation.getId()));
         }
@@ -343,7 +366,13 @@ public class AgentOrchestrator {
         //    l'orchestration. SIMPLE/DIRECT → mono-agent directement (un tour
         //    multi coute 5-10x un tour mono). Doute ou erreur → MULTI
         //    (comportement historique, zero regression possible).
-        boolean multiAgentEligible = multiAgentFlowRunner.canUse(context, hasAttachments);
+        // The durable v3 transport uses the existing sequential tool runner: its
+        // invocation and business receipts are persisted on this thread. The
+        // parallel specialist engine does not yet carry that proof context.
+        // Choose before any routing/provider effect, never after a partial run.
+        // Other transports keep their existing multi-agent configuration.
+        boolean multiAgentEligible = !BaitlyChatTurnObservation.writesPolicy()
+                && multiAgentFlowRunner.canUse(context, hasAttachments);
         IntentRouter.Route route = null;
         if (multiAgentEligible && intentRouter != null && intentRouter.isEnabled()) {
             IntentRouter.RouteDecision decision = intentRouter.classify(effectiveMessage, target, apiKey);
@@ -365,6 +394,7 @@ public class AgentOrchestrator {
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
         if (multiAgentEligible) {
+            BaitlyChatTurnObservation.multiAgent();
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
@@ -474,14 +504,16 @@ public class AgentOrchestrator {
                                          boolean confirmed,
                                          AgentContext context,
                                          Consumer<AgentSseEvent> consumer) {
+        if(completionJournal!=null && !BaitlyChatTurnObservation.active()) {
+            completionJournal.requireLegacyUntracked(context.organizationId(),context.keycloakId(),null,toolCallId);
+        }
         PendingToolStore.PendingTool pending = pendingToolStore
-                .consume(toolCallId, context.keycloakId())
+                .consume(toolCallId, context.keycloakId(), context.organizationId(), confirmed)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Tool en attente " + toolCallId + " introuvable / expire / non autorise"));
+                        "Baitly pending decision unavailable"));
 
-        // Journal des resolutions (X1) : l'outcome CONFIRMED/REFUSED nourrit les
-        // Regles de Confiance (X2). Best-effort, hors chemin critique.
-        pendingToolStore.markResolved(toolCallId, confirmed);
+        // The durable decision was claimed above, before any effect. Its status
+        // records consent/refusal, never proof that the tool completed.
 
         // Recharger la conv pour update updatedAt en fin de boucle. La validation
         // d'ownership est double : consume() (keycloakId du pending) + findByIdAndUser
@@ -525,6 +557,8 @@ public class AgentOrchestrator {
                 conversation.getId(), context.organizationId(),
                 pending.toolCallId(), result.content());
         messageRepository.save(toolMsg);
+        if(confirmed) BaitlyChatTurnObservation.toolPersisted(pending.toolCallId(),toolMsg.getId(),result.isError());
+        else BaitlyChatTurnObservation.declinedPersisted(pending.toolCallId(),toolMsg.getId());
 
         // ─── Branche HITL multi-agent : re-entrer dans le flow multi-agent ───
         if (pending.isMultiAgent()) {
@@ -542,8 +576,27 @@ public class AgentOrchestrator {
 
         // ─── Branche mono-agent (inchangée) ───
         // Construire le ChatRequest a partir de l'historique stocke + tool result
-        List<ChatMessage> messages = new ArrayList<>(pending.pendingHistory());
-        messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
+        List<ChatMessage> messages;
+        if(BaitlyChatTurnObservation.writesPolicy()) {
+            var remaining=pendingToolStore.remainingBatch(pending);
+            if(!remaining.isEmpty()) {
+                for(var next:remaining) consumer.accept(AgentSseEvent.toolConfirmationRequest(
+                    next.toolName(),next.toolCallId(),next.argsJson(),next.toolName()));
+                consumer.accept(AgentSseEvent.pausedAwaitingConfirmation());
+                if(agentRunRecorder!=null) agentRunRecorder.finishRun(null);
+                if(runCreditGuard!=null) runCreditGuard.endRun();
+                return conversation.getId();
+            }
+            var persisted=messageRepository.findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(context.organizationId(),conversation.getId());
+            for(var call:pending.pendingHistory().getLast().toolCalls()) {
+                long matches=persisted.stream().filter(m->"tool".equals(m.getRole()) && call.id().equals(m.getToolCallId())).count();
+                if(matches!=1) throw new IllegalStateException("Baitly pending batch unavailable");
+            }
+            messages=historyMapper.toChatMessages(persisted,conversation.getRollingSummary());
+        } else {
+            messages=new ArrayList<>(pending.pendingHistory());
+            messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
+        }
 
         ComposedSystemPrompt resumeSystem = promptComposer.buildSegmentedSystemPrompt(context);
         ResolvedTarget target =

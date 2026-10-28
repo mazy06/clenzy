@@ -5317,3 +5317,131 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0596__baitly_crm_follow_up.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0597-baitly-accounting-export-journal"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0597__baitly_accounting_export_journal.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0598-baitly-oauth-refresh-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0598__baitly_oauth_refresh_attempts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0599-baitly-minut-event-journal"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0599__baitly_minut_event_journal.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0600-baitly-noise-warning-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0600__baitly_noise_warning_attempts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0601-baitly-noise-delivery-outbox"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0601__baitly_noise_delivery_outbox.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0602-baitly-noise-alert-cooldown-index"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0602__baitly_noise_alert_cooldown_index.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0603-baitly-automation-durable-recovery"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0603__baitly_automation_durable_recovery.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0604-baitly-automation-outcome-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0604__baitly_automation_outcome_proofs.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0605-baitly-external-effect-fences"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0605__baitly_external_effect_fences.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0606-baitly-noise-delivery-expiry-observation"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0606__baitly_noise_delivery_expiry_observation.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0607-baitly-chat-turn-receipts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0607__baitly_chat_turn_receipts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0608-baitly-chat-tool-evidence"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0608__baitly_chat_tool_evidence.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0609-baitly-chat-tool-turn-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0609__baitly_chat_tool_turn_proofs.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0610-baitly-chat-write-business-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0610__baitly_chat_write_business_proofs.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0611-baitly-chat-complete-write-turns"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0611__baitly_chat_complete_write_turns.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0612-baitly-chat-continuations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0612__baitly_chat_continuations.sql
+            relativeToChangelogFile: true
