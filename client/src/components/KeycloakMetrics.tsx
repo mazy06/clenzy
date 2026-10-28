@@ -1,493 +1,131 @@
-import React, { useState, useEffect } from 'react';
-import StatusChip from './StatusChip';
-import {
-  Alert as UiAlert,
-  AlertAction,
-  AlertDescription,
-  Button,
-  Card,
-  CardContent,
-  Progress,
-  Spinner,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from './ui';
-import { TriangleAlert } from '../icons/glyphs';
-import { cn } from '../utils/cn';
-import {
-  TrendingUp,
-  Refresh,
-  Group,
-  Security,
-  Wifi,
-  BugReport,
-} from '../icons';
+import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription, AlertAction, Button, Progress } from './ui';
+import { Group, Wifi, TrendingUp, Security, Refresh, Info, BugReport } from '../icons';
+import StatTile from './baitly/StatTile';
+import StatTileRow from './baitly/StatTileRow';
+import StatusChip, { type StatusTone } from './StatusChip';
 import { monitoringApi } from '../services/api/monitoringApi';
-import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../hooks/useAuth';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { MonitoringIntro, MonitoringPanel, MonitoringValueRow, MonitoringLoading, monitoringNumber, monitoringDate } from './monitoring/MonitoringSurface';
 
-/**
- * Niveau semantique → couleur, en VALEUR CSS et non en classe : le niveau est
- * choisi a l'execution par {@link getStatusColor} / {@link getPerformanceColor}, et
- * Tailwind n'emet ses classes qu'a la compilation. Les variables Baitly UI portent
- * leur declinaison claire ET sombre (theme/baitly-ui.css) ; l'encre `-ink` tient le
- * 4,5:1 la ou la teinte vive plafonne a ~2,2:1 sur une carte.
- *
- * <p>Les tons neutre et info n'ont plus de table locale : ce sont exactement
- * `STATUS_TONES.neutral` et `STATUS_TONES.info`, que {@link StatusChip} resout
- * lui-meme via sa prop `tone`.</p>
- */
-const SEM_TOKEN: Record<'success' | 'warning' | 'error', { fg: string; bg: string }> = {
-  success: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
-  warning: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
-  error: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-};
-
-/** Grosse valeur de carte : display + tabular-nums (pattern StatTile) */
-const DISPLAY_VALUE_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
-
-/**
- * Barre de couverture : la teinte depend du niveau atteint. Les trois branches sont
- * ecrites en litteral — une classe Tailwind ne peut pas naitre d'une variable.
- * Un aplat, pas du texte : c'est la teinte VIVE et non l'encre `-ink`.
- */
-const COVERAGE_BAR_CLASS: Record<'success' | 'warning' | 'error', string> = {
-  success: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-success',
-  warning: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-warning',
-  error: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-destructive',
-};
-
-const getStatusColor = (value: number, threshold: number) => {
-  if (value <= threshold * 0.7) return 'success';
-  if (value <= threshold) return 'warning';
-  return 'error';
-};
-
-const getPerformanceColor = (value: number, isLowerBetter = false) => {
-  if (isLowerBetter) {
-    return value <= 100 ? 'success' : value <= 200 ? 'warning' : 'error';
-  }
-  return value >= 90 ? 'success' : value >= 70 ? 'warning' : 'error';
-};
-
-const getCoverageColor = (percent: number): 'success' | 'warning' | 'error' => {
-  if (percent >= 80) return 'success';
-  if (percent >= 60) return 'warning';
-  return 'error';
-};
-
-const KeycloakMetrics: React.FC = () => {
+export default function KeycloakMetrics() {
   const { t } = useTranslation();
-  const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
-  const [coverage, setCoverage] = useState<TestCoverageMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { user } = useAuth();
   const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
-
-  const fetchMetrics = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [metricsData, coverageData] = await Promise.all([
-        monitoringApi.getKeycloakMetrics(),
-        monitoringApi.getTestCoverage().catch(() => null),
-      ]);
-      setMetrics(metricsData);
-      setCoverage(coverageData);
-      setLastUpdate(new Date());
-    } catch (err) {
-      setError(t('monitoring.metricsFetchError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const query = useQuery({ queryKey: ['monitoring', 'keycloak', user?.id, user?.organizationId], enabled: !!user, gcTime: 0, queryFn: monitoringApi.getKeycloakMetrics });
+  const coverageQuery = useQuery({ queryKey: ['monitoring', 'coverage', user?.id, user?.organizationId], enabled: !!user, gcTime: 0, queryFn: monitoringApi.getTestCoverage });
+  const { data: metrics, dataUpdatedAt, refetch, isFetching } = query;
+  const refresh = () => { void refetch(); void coverageQuery.refetch(); };
   useEffect(() => {
-    fetchMetrics();
-  }, []);
-
-  const handleRefresh = () => {
-    fetchMetrics();
-  };
-
-  // Register page-header actions and last-update timestamp.
-  useEffect(() => {
-    setHeaderActions(
-      <Tooltip>
-        {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote, le Button
-            du kit etant une fonction qui ne transmet pas de ref (React 18). */}
-        <TooltipTrigger asChild>
-          <span className="inline-flex">
-            <Button variant="ghost" size="icon-sm" onClick={handleRefresh} aria-label={t('keycloakMetrics.refresh')}>
-              <Refresh size={20} strokeWidth={1.75} />
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{t('keycloakMetrics.refresh')}</TooltipContent>
-      </Tooltip>,
-    );
+    setHeaderActions(<Button variant="outline" size="sm" disabled={isFetching || coverageQuery.isFetching} onClick={refresh}>
+      <Refresh size={16} />{t('keycloakMetrics.refresh')}</Button>);
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
-
+  }, [setHeaderActions, refetch, coverageQuery.refetch, isFetching, coverageQuery.isFetching, t]);
   useEffect(() => {
-    setHeaderLastUpdate(lastUpdate);
-  }, [setHeaderLastUpdate, lastUpdate]);
+    setHeaderLastUpdate(dataUpdatedAt ? new Date(dataUpdatedAt) : null);
+  }, [setHeaderLastUpdate, dataUpdatedAt]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Spinner className="size-10" />
+  if (query.isLoading) return <MonitoringLoading label={t('monitoringDesign.loading')} />;
+  if (!metrics) return <Alert variant="destructive"><Info /><AlertDescription>
+    {t('monitoring.metricsFetchError')}</AlertDescription><AlertAction><Button variant="outline" size="sm"
+      disabled={isFetching} onClick={refresh}>{t('common.retry')}</Button></AlertAction></Alert>;
+  const number = (n: number | undefined) => monitoringNumber(n, activeIntlLocale());
+  const coverage = coverageQuery.data;
+  const coverageRows = coverage?.available ? [
+    { label: t('monitoringDesign.coverageLines'), percent: coverage.linePercent, covered: coverage.lineCovered, total: coverage.lineTotal },
+    { label: t('monitoringDesign.coverageBranches'), percent: coverage.branchPercent, covered: coverage.branchCovered, total: coverage.branchTotal },
+    { label: t('monitoringDesign.coverageInstructions'), percent: coverage.instructionPercent, covered: coverage.instructionCovered, total: coverage.instructionTotal },
+    { label: t('keycloakMetrics.methods'), percent: coverage.methodPercent, covered: coverage.methodCovered, total: coverage.methodTotal },
+    { label: t('monitoringDesign.coverageClasses'), percent: coverage.classPercent, covered: coverage.classCovered, total: coverage.classTotal },
+    { label: t('keycloakMetrics.complexity'), percent: coverage.complexityPercent, covered: coverage.complexityCovered, total: coverage.complexityTotal },
+  ].filter(row => row.percent != null && Number.isFinite(row.percent)) : [];
+  const securitySignals = metrics.security.failedLogins + metrics.security.permissionDenied + metrics.security.suspiciousActivity;
+  const securityTone: StatusTone = metrics.security.suspiciousActivity > 0 ? 'err' : securitySignals > 0 ? 'warn' : 'neutral';
+
+  return <div className="bui-monitor">
+    <MonitoringIntro title={t('monitoringDesign.authTitle')} description={t('monitoringDesign.authDescription')}
+      status={query.error ? t('monitoringDesign.staleSnapshot') : t('monitoringDesign.backendSnapshot')} />
+    {query.error && <Alert variant="warning"><Info /><AlertDescription>{t('monitoringDesign.staleValues')}</AlertDescription></Alert>}
+    <StatTileRow compact>
+      <StatTile icon={<Group />} label={t('monitoringDesign.activeAccounts')} value={number(metrics.users.active)} />
+      <StatTile icon={<Wifi />} label={t('monitoringDesign.validTokens')} value={number(metrics.sessions.validTokens)} />
+      <StatTile icon={<TrendingUp />} label={t('keycloakMetrics.avgResponseTime')} value={number(metrics.performance.avgResponseTimeMs)} unit="ms" />
+      <StatTile icon={<Info />} label={t('monitoringDesign.errorRate')} value={number(metrics.performance.errorRate)} unit="%" />
+    </StatTileRow>
+    <div className="bui-monitor-columns">
+      <div className="min-w-0 space-y-4">
+        <MonitoringPanel title={t('keycloakMetrics.security7d')} description={t('monitoringDesign.securityHint')}
+          action={<StatusChip tone={securityTone} label={securitySignals > 0
+            ? t('monitoringDesign.signalsToReview', { count: securitySignals }) : t('monitoringDesign.noSignal')} />}>
+          <dl>
+            <MonitoringValueRow label={t('keycloakMetrics.loginFailures')} value={number(metrics.security.failedLogins)}
+              tone={metrics.security.failedLogins > 0 ? 'warn' : 'neutral'} />
+            <MonitoringValueRow label={t('keycloakMetrics.accessDenied')} value={number(metrics.security.permissionDenied)}
+              tone={metrics.security.permissionDenied > 0 ? 'warn' : 'neutral'} />
+            <MonitoringValueRow label={t('monitoringDesign.suspiciousActivity')} value={number(metrics.security.suspiciousActivity)}
+              tone={metrics.security.suspiciousActivity > 0 ? 'err' : 'neutral'} />
+          </dl>
+          <div className="border-t border-border py-4 text-xs text-muted-foreground">
+            {t('monitoringDesign.lastIncident')}{' '}
+            <span className="tabular-nums">{metrics.security.lastIncident
+              ? monitoringDate(metrics.security.lastIncident, activeIntlLocale()) : t('monitoringDesign.noIncidentRecorded')}</span>
+          </div>
+        </MonitoringPanel>
+        <MonitoringPanel title={t('monitoringDesign.apiPerformance')} description={t('monitoringDesign.performanceHint')}>
+          <dl>
+            <MonitoringValueRow label={t('monitoringDesign.requestsProcessed')} value={number(metrics.performance.totalRequests)} />
+            <MonitoringValueRow label={t('keycloakMetrics.avgResponseTime')} value={number(metrics.performance.avgResponseTimeMs) + ' ms'} />
+            <MonitoringValueRow label={t('monitoringDesign.reportedAvailability')} value={number(metrics.performance.uptimePercent) + ' %'} />
+            <MonitoringValueRow label={t('monitoringDesign.errorRate')} value={number(metrics.performance.errorRate) + ' %'}
+              tone={metrics.performance.errorRate > 0 ? 'warn' : 'neutral'} />
+          </dl>
+        </MonitoringPanel>
       </div>
-    );
-  }
-
-  // `outline` et non `ghost` pour le bouton d'action : pose sur le fond teinte de
-  // l'alerte, un bouton sans cadre disparaitrait.
-  if (error) {
-    return (
-      <UiAlert variant="destructive">
-        <TriangleAlert />
-        <AlertDescription>{error}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            {t('common.retry')}
-          </Button>
-        </AlertAction>
-      </UiAlert>
-    );
-  }
-
-  if (!metrics) {
-    return (
-      <UiAlert variant="warning">
-        <TriangleAlert />
-        <AlertDescription>{t('keycloakMetrics.empty')}</AlertDescription>
-      </UiAlert>
-    );
-  }
-
-  return (
-    <div>
-      <div className="grid grid-cols-12 gap-[18px]">
-        {/* Utilisateurs */}
-        <div className="col-span-12 min-[900px]:col-span-6">
-          <Card>
-            <CardContent>
-              <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
-                <span className="inline-flex me-1.5 text-primary"><Group size={20} strokeWidth={1.75} /></span>
-                Utilisateurs
-              </h6>
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS, 'text-foreground')}>
-                      {metrics.users.total}
-                    </h4>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      Total
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS, 'text-success-ink')}>
-                      {metrics.users.active}
-                    </h4>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      Actifs
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-12">
-                  <div className="flex gap-1.5 flex-wrap">
-                    <StatusChip tone="info" label={`${metrics.users.newThisWeek} nouveaux`} icon={<TrendingUp size={16} strokeWidth={1.75} />} />
-                    <StatusChip tone="neutral" label={`${metrics.users.inactive} inactifs`} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sessions / Tokens */}
-        <div className="col-span-12 min-[900px]:col-span-6">
-          <Card>
-            <CardContent>
-              <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
-                <span className="inline-flex me-1.5 text-primary"><Wifi size={20} strokeWidth={1.75} /></span>
-                Tokens JWT
-              </h6>
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS, 'text-foreground')}>
-                      {metrics.sessions.totalTokens}
-                    </h4>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      {t('keycloakMetrics.totalProcessed')}
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS, 'text-success-ink')}>
-                      {metrics.sessions.validTokens}
-                    </h4>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      Valides
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-12">
-                  <div className="flex gap-1.5 flex-wrap">
-                    <StatusChip tone="info" label={`${metrics.sessions.cacheHits} cache hits`} />
-                    <StatusChip tone="neutral" label={`${metrics.sessions.revokedTokens} révoqués`} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance */}
-        <div className="col-span-12 min-[900px]:col-span-6">
-          <Card>
-            <CardContent>
-              <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
-                <span className="inline-flex me-1.5 text-primary"><TrendingUp size={20} strokeWidth={1.75} /></span>
-                Performance API
-              </h6>
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-6">
-                  <div className="text-center">
-                    {/* Couleur calculee a l'execution : style inline, une classe Tailwind ne peut pas naitre d'une variable */}
-                    <h6 className={cn('text-sm font-semibold m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg }}>
-                      {metrics.performance.avgResponseTimeMs}ms
-                    </h6>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      {t('keycloakMetrics.avgResponseTime')}
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h6 className={cn('text-sm font-semibold m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg }}>
-                      {metrics.performance.uptimePercent}%
-                    </h6>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      Uptime
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-12">
-                  <div className="flex gap-1.5 flex-wrap">
-                    <StatusChip tone="info" label={`${metrics.performance.totalRequests} requêtes`} />
-                    <StatusChip tokens={{ color: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, bg: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg }} label={`${metrics.performance.errorRate}% erreurs`} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sécurité */}
-        <div className="col-span-12 min-[900px]:col-span-6">
-          <Card>
-            <CardContent>
-              <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
-                <span className="inline-flex me-1.5 text-primary"><Security size={20} strokeWidth={1.75} /></span>
-                {t('keycloakMetrics.security7d')}
-              </h6>
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h6 className={cn('text-sm font-semibold m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg }}>
-                      {metrics.security.failedLogins}
-                    </h6>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      {t('keycloakMetrics.loginFailures')}
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-6">
-                  <div className="text-center">
-                    <h6 className={cn('text-sm font-semibold m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg }}>
-                      {metrics.security.permissionDenied}
-                    </h6>
-                    <p className="text-xs m-0 text-muted-foreground">
-                      {t('keycloakMetrics.accessDenied')}
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-12">
-                  <div className="flex gap-1.5 flex-wrap">
-                    <StatusChip tokens={{ color: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, bg: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg }} label={`${metrics.security.suspiciousActivity} activité suspecte`} />
-                    {metrics.security.lastIncident && (
-                      <StatusChip tone="neutral" label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Couverture de tests */}
-        {coverage && coverage.available && (
-          <div className="col-span-12">
-            <Card>
-              <CardContent>
-                <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
-                  <span className="inline-flex me-1.5 text-primary"><BugReport size={20} strokeWidth={1.75} /></span>
-                  Couverture de Tests
-                  {coverage.reportDate && (
-                    <StatusChip tone="neutral" label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`} className="ms-3" />
-                  )}
-                </h6>
-                <div className="grid grid-cols-12 gap-[18px]">
-                  {/* Lignes */}
-                  {coverage.linePercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg }}>
-                          {coverage.linePercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Lignes
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.linePercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.linePercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.lineCovered}/{coverage.lineTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Branches */}
-                  {coverage.branchPercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg }}>
-                          {coverage.branchPercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Branches
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.branchPercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.branchPercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.branchCovered}/{coverage.branchTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Instructions */}
-                  {coverage.instructionPercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg }}>
-                          {coverage.instructionPercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Instructions
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.instructionPercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.instructionPercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.instructionCovered}/{coverage.instructionTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Méthodes */}
-                  {coverage.methodPercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg }}>
-                          {coverage.methodPercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          {t('keycloakMetrics.methods')}
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.methodPercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.methodPercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.methodCovered}/{coverage.methodTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Classes */}
-                  {coverage.classPercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg }}>
-                          {coverage.classPercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Classes
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.classPercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.classPercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.classCovered}/{coverage.classTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Complexité */}
-                  {coverage.complexityPercent != null && (
-                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
-                      <div className="text-center">
-                        <h4 className={cn('text-base font-semibold tracking-tight m-0', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg }}>
-                          {coverage.complexityPercent}%
-                        </h4>
-                        <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          {t('keycloakMetrics.complexity')}
-                        </p>
-                        <Progress
-                          value={Math.min(coverage.complexityPercent, 100)}
-                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.complexityPercent)]}
-                        />
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {coverage.complexityCovered}/{coverage.complexityTotal}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Message si couverture non disponible */}
-        {coverage && !coverage.available && (
-          <div className="col-span-12">
-            <UiAlert variant="info">
-              <BugReport size={20} strokeWidth={1.75} />
-              <AlertDescription>
-                {coverage.message || t('monitoring.coverageUnavailable')}
-              </AlertDescription>
-            </UiAlert>
-          </div>
-        )}
+      <div className="min-w-0 space-y-4">
+        <MonitoringPanel title={t('monitoringDesign.accountInventory')} description={t('monitoringDesign.accountHint')}>
+          <dl>
+            <MonitoringValueRow label={t('monitoringDesign.totalAccounts')} value={number(metrics.users.total)} />
+            <MonitoringValueRow label={t('monitoringDesign.activeAccounts')} value={number(metrics.users.active)} />
+            <MonitoringValueRow label={t('monitoringDesign.inactiveAccounts')} value={number(metrics.users.inactive)} />
+            <MonitoringValueRow label={t('monitoringDesign.newThisWeek')} value={number(metrics.users.newThisWeek)} />
+          </dl>
+        </MonitoringPanel>
+        <MonitoringPanel title={t('monitoringDesign.jwtInventory')}>
+          <dl>
+            <MonitoringValueRow label={t('keycloakMetrics.totalProcessed')} value={number(metrics.sessions.totalTokens)} />
+            <MonitoringValueRow label={t('monitoringDesign.validTokens')} value={number(metrics.sessions.validTokens)} />
+            <MonitoringValueRow label={t('monitoringDesign.revokedTokens')} value={number(metrics.sessions.revokedTokens)} />
+            <MonitoringValueRow label={t('monitoringDesign.cacheHits')} value={number(metrics.sessions.cacheHits)} />
+          </dl>
+        </MonitoringPanel>
       </div>
     </div>
-  );
-};
-
-export default KeycloakMetrics;
+    <MonitoringPanel title={t('monitoringDesign.testCoverage')} description={t('monitoringDesign.coverageHint')}
+      action={coverage?.reportDate ? <StatusChip tone="neutral"
+        label={new Date(coverage.reportDate).toLocaleDateString(activeIntlLocale())} /> : <BugReport size={18} className="text-muted-foreground" />}>
+      {coverageQuery.isLoading ? <p className="py-5 text-sm text-muted-foreground">{t('monitoringDesign.loading')}</p>
+        : coverageRows.length > 0 ? <table className="bui-monitor-coverage">
+          <thead><tr><th scope="col">{t('monitoringDesign.measure')}</th><th scope="col">{t('monitoringDesign.coveredTotal')}</th>
+            <th scope="col">{t('monitoringDesign.coverage')}</th></tr></thead>
+          <tbody>{coverageRows.map(row => <tr key={row.label}>
+            <td className="font-medium">{row.label}</td>
+            <td className="tabular-nums text-muted-foreground">{number(row.covered)} / {number(row.total)}</td>
+            <td><div className="flex items-center gap-3">
+              <span className="min-w-12 tabular-nums">{number(row.percent)} %</span>
+              <Progress aria-label={row.label} value={Math.max(0, Math.min(100, row.percent ?? 0))} className="h-1 flex-1" />
+            </div></td>
+          </tr>)}</tbody>
+        </table> : <div className="flex items-start gap-3 py-5">
+          <Info size={18} className="shrink-0 text-muted-foreground" />
+          <div><p className="text-sm font-medium">{t('monitoring.coverageUnavailable')}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('monitoringDesign.coverageMissingHint')}</p>
+            {coverageQuery.error && <Button variant="ghost" size="sm" className="mt-2"
+              onClick={() => void coverageQuery.refetch()}>{t('common.retry')}</Button>}</div>
+        </div>}
+    </MonitoringPanel>
+  </div>;
+}

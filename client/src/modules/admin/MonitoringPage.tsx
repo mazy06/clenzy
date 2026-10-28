@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
+import React, { useState, useMemo, createContext, useContext } from 'react';
 import { HealthAndSafety } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -7,6 +7,7 @@ import {
   resolveTabHeader,
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
 import TokenMonitoring from '../../components/TokenMonitoring';
@@ -37,37 +38,24 @@ export const useMonitoringHeader = (): MonitoringHeaderApi => useContext(Monitor
 
 const MonitoringPage: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   // Onglets lus au registre — defini AVANT useTabKeyParam, dont le resultat
-  // (tabValue) est consomme par le useEffect ci-dessous (TDZ).
+  // (tabValue) pilote le contenu et les métadonnées du header.
   const monitoringTabs = useScreenTabs('/admin/monitoring');
   const [tabValue, setTabValue] = useTabKeyParam(monitoringTabs);
-  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
-  const [headerLastUpdate, setHeaderLastUpdate] = useState<Date | null>(null);
-
-  // Reset slot state when switching tabs so a previous tab's content never leaks.
-  useEffect(() => {
-    setHeaderActions(null);
-    setHeaderLastUpdate(null);
-  }, [tabValue]);
-
-  const headerApi = useMemo<MonitoringHeaderApi>(
-    () => ({ setHeaderActions, setHeaderLastUpdate }),
-    [],
-  );
-
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const monitoringTabMeta: Record<string, TabHeaderMeta> = {
-    [t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens')]: {
-      subtitle: t('tabHeaders.monitoring.subtitle.tokens', 'Surveillance des tokens IA consommés par feature : compteurs, coûts et rotation des clés.'),
+    [t('tabHeaders.monitoring.tabs.tokens', 'Sessions JWT')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.tokens', 'Session courante, expiration des tokens JWT et compteurs de renouvellement.'),
     },
-    [t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak')]: {
-      subtitle: t('tabHeaders.monitoring.subtitle.keycloak', "Métriques Keycloak (sessions, login, refresh) et couverture des tests d'intégration."),
+    [t('tabHeaders.monitoring.tabs.keycloak', 'Authentification')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.keycloak', "Authentification (sessions, login, refresh) et couverture des tests d'intégration."),
     },
-    [t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging')]: {
+    [t('tabHeaders.monitoring.tabs.audit', 'Journal d’audit')]: {
       subtitle: t('tabHeaders.monitoring.subtitle.audit', "Journal d'audit horodaté : connexions, accès aux données, actions admin et permissions refusées."),
     },
-    [t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés')]: {
+    [t('tabHeaders.monitoring.tabs.healthChecks', 'Santé des services')]: {
       subtitle: t('tabHeaders.monitoring.subtitle.healthChecks', 'Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel.'),
     },
     [t('tabHeaders.monitoring.tabs.rlsAudit', 'Isolation RLS')]: {
@@ -84,19 +72,8 @@ const MonitoringPage: React.FC = () => {
     monitoringTabMeta,
   );
 
-  const headerActionsSlot = (
-    <div className="flex items-center gap-1.5">
-      {headerLastUpdate && (
-        <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-          {t('tabHeaders.monitoring.lastUpdate', 'Dernière mise à jour')}: {headerLastUpdate.toLocaleTimeString()}
-        </span>
-      )}
-      {headerActions}
-    </div>
-  );
-
   return (
-    <div>
+    <MonitoringWorkspace key={String(tabValue) + ':' + user?.id + ':' + user?.organizationId}>{(headerActionsSlot) => <div className="min-w-0">
       <PageHeader
         title={title}
         subtitle={subtitle}
@@ -110,20 +87,35 @@ const MonitoringPage: React.FC = () => {
         options={monitoringTabs}
         value={tabValue}
         onChange={setTabValue}
-        ariaLabel="Monitoring tabs"
+        ariaLabel={t('monitoringDesign.navigation')}
       />
 
-      <div className="mt-3">
-        <MonitoringHeaderContext.Provider value={headerApi}>
+      <div className="mt-5 pb-5">
           {tabValue === 0 && <TokenMonitoring />}
           {tabValue === 1 && <KeycloakMetrics />}
           {tabValue === 2 && <AuditLogging />}
           {tabValue === 3 && <HealthChecks />}
           {tabValue === 4 && <RlsAudit />}
-        </MonitoringHeaderContext.Provider>
       </div>
-    </div>
+    </div>}</MonitoringWorkspace>
   );
 };
+
+/** Keyed by tab: actions and timestamps cannot leak from the previous screen. */
+function MonitoringWorkspace({ children }: { children: (actions: React.ReactNode) => React.ReactNode }) {
+  const { t } = useTranslation();
+  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
+  const [headerLastUpdate, setHeaderLastUpdate] = useState<Date | null>(null);
+  const headerApi = useMemo<MonitoringHeaderApi>(() => ({ setHeaderActions, setHeaderLastUpdate }), []);
+  return <MonitoringHeaderContext.Provider value={headerApi}>
+    {children(<div className="flex flex-wrap items-center justify-end gap-3">
+      {headerLastUpdate && <time dateTime={headerLastUpdate.toISOString()}
+        className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+        {t("tabHeaders.monitoring.lastUpdate")}{" : "}{headerLastUpdate.toLocaleTimeString()}
+      </time>}
+      {headerActions}
+    </div>)}
+  </MonitoringHeaderContext.Provider>;
+}
 
 export default MonitoringPage;
