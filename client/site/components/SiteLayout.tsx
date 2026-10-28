@@ -26,6 +26,7 @@ import {
 } from '../data/baitlySiteNavigation';
 import PublicLanguagePicker from '../../src/components/PublicLanguagePicker';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import GooglePreferredSourceBadge from './GooglePreferredSourceBadge';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import { PROVIDERS_MESSAGES } from '../lib/messages/providers';
@@ -329,6 +330,7 @@ function SiteFooter() {
               label={LANGUAGE_LABEL[language]}
               className="mt-5"
             />
+            <GooglePreferredSourceBadge language={language} className="mt-4" />
           </div>
           {footerColumns(language).map((column) => (
             <div key={column.title}>

@@ -12,6 +12,7 @@ import {
   ResourceGlossary,
 } from '../components/BaitlyResourceTools';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
+import GooglePreferredSourceBadge from '../components/GooglePreferredSourceBadge';
 import AcademyEpisodeView, { ACADEMY_PRACTICE_ID } from '../components/academy/AcademyEpisodeView';
 import AcademyProgram from '../components/academy/AcademyProgram';
 import { ACADEMY_EPISODES, academyEpisode } from '../data/baitlyAcademyVideos';
@@ -67,6 +68,7 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
         </span>
         <h1>{episodeText ? episodeText.title : module.title}</h1>
         <p>{episodeText ? episodeText.description : module.intro}</p>
+        <GooglePreferredSourceBadge language={language} className="mt-5" />
       </header>
       <div className="site-shell brs-tool-content">
         {episode ? (
