@@ -16,6 +16,8 @@ import {
 } from '../site/data/legal';
 import { legalArticleImage } from '../site/data/legal/articleImages';
 import {
+  HOME_SEARCH,
+  PAGE_SEARCH,
   SITE_ORIGIN,
   canonicalPath,
   canonicalUrl,
@@ -243,6 +245,16 @@ export function discoveryArtifacts(
     }
   }
   const frenchDocuments = siteDocuments('fr', catalog);
+  /* Machines read the search title, not the on-page slogan: "Tous vos
+     calendriers, une seule vérité." says nothing about a channel manager. */
+  const llmsEntry = (path: string) => {
+    const search = path === '/' ? HOME_SEARCH.fr : PAGE_SEARCH.fr[path];
+    const name = search
+      ? search.title.replace(/ \| Baitly$/, '')
+      : frenchDocuments.get(path)!.split('\n')[0].slice(2);
+    const note = search?.description ? `: ${search.description}` : '';
+    return `- [${name}](${canonicalUrl(path)})${note}`;
+  };
   const academyIndex = [
     '## Baitly Académie videos',
     '',
@@ -258,7 +270,7 @@ export function discoveryArtifacts(
   ].join('\n');
   assets.set(
     'llms.txt',
-    `# Baitly\n\n> ${frenchDocuments.get('/')!.split('\n\n')[2]}\n\n## Country guides\n\n${LEGAL_COUNTRIES.map((country) => `- [${country.name.fr}](${canonicalUrl(guidePath(country.code))})`).join('\n')}\n\n## Public pages\n\n${indexablePaths.map((path) => `- [${frenchDocuments.get(path)!.split('\n')[0].slice(2)}](${canonicalUrl(path)})`).join('\n')}\n\n## Articles in Arabic\n\n${LEGAL_ARTICLES.map((article) => `- [${legalArticle(article.slug, 'ar')!.title}](${canonicalUrl(articlePath(article), 'ar')})`).join('\n')}\n\n## Reading these pages\n\nRequest a listed page with Accept: text/markdown. Use ?lang=fr, ?lang=en or ?lang=ar; French is the default Markdown language. Country-guide summaries are available in all three languages. Full regulatory articles are available in French and Arabic (?lang=ar). English navigation links to the French article when no English translation exists. HTML contains readable content without JavaScript and remains the browser default. Sources and editorial review dates are listed in each regulatory article.\n\n- [Sitemap](${CANONICAL_ORIGIN}/sitemap.xml)\n- [Crawl rules](${CANONICAL_ORIGIN}/robots.txt)\n`,
+    `# Baitly\n\n> ${frenchDocuments.get('/')!.split('\n\n')[2]}\n\n## Country guides\n\n${LEGAL_COUNTRIES.map((country) => `- [${country.name.fr}](${canonicalUrl(guidePath(country.code))})`).join('\n')}\n\n## Public pages\n\n${indexablePaths.map(llmsEntry).join('\n')}\n\n## Articles in Arabic\n\n${LEGAL_ARTICLES.map((article) => `- [${legalArticle(article.slug, 'ar')!.title}](${canonicalUrl(articlePath(article), 'ar')})`).join('\n')}\n\n## Reading these pages\n\nRequest a listed page with Accept: text/markdown. Use ?lang=fr, ?lang=en or ?lang=ar; French is the default Markdown language. Country-guide summaries are available in all three languages. Full regulatory articles are available in French and Arabic (?lang=ar). English navigation links to the French article when no English translation exists. HTML contains readable content without JavaScript and remains the browser default. Sources and editorial review dates are listed in each regulatory article.\n\n- [Sitemap](${CANONICAL_ORIGIN}/sitemap.xml)\n- [Crawl rules](${CANONICAL_ORIGIN}/robots.txt)\n`,
   );
   assets.set('llms.txt', `${assets.get('llms.txt')}\n${academyIndex}`);
   // Search discovery and HTML canonicals use the same public origin.

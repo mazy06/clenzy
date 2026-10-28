@@ -121,8 +121,13 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
       description:
         'Vous comparez Hostaway ? Ce que l’éditeur publie sur ses tarifs, l’offre de Baitly pour la France, le Maroc et l’Arabie saoudite, et les questions à poser.',
     },
+    '/ressources': {
+      title: 'Ressources location saisonnière : guides, outils et formations | Baitly',
+    },
     '/ressources/calculateur': {
       title: 'Calculateur de rentabilité location saisonnière | Baitly',
+      description:
+        'Calculez gratuitement la rentabilité de votre location saisonnière : prix par nuit, occupation, commissions, charges et extras. Solde mensuel et seuil de rentabilité en direct.',
     },
     '/ressources/barometre': {
       title: 'Baromètre des nuitées touristiques au Maroc | Baitly',
@@ -138,6 +143,8 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     },
     '/ressources/glossaire': {
       title: 'Glossaire de la location saisonnière (FR, EN, AR) | Baitly',
+      description:
+        'Les termes de la location saisonnière expliqués simplement, avec leur traduction en anglais et en arabe : taux d’occupation, RevPAR, channel manager, OTA et plus.',
     },
     '/conciergeries': {
       title: 'Trouver une conciergerie Airbnb et location saisonnière | Baitly',
@@ -226,8 +233,13 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
       description:
         'Comparing Hostaway? What the vendor publishes about its pricing, what Baitly offers in France, Morocco and Saudi Arabia, and the questions to ask.',
     },
+    '/ressources': {
+      title: 'Vacation rental resources: guides, tools and training | Baitly',
+    },
     '/ressources/calculateur': {
       title: 'Vacation rental profitability calculator | Baitly',
+      description:
+        'Work out your vacation rental profitability for free: nightly rate, occupancy, commissions, costs and extras. Monthly result and break-even point, updated as you type.',
     },
     '/ressources/barometre': {
       title: 'Morocco tourism overnight stays barometer | Baitly',
@@ -243,6 +255,8 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     },
     '/ressources/glossaire': {
       title: 'Vacation rental glossary (EN, FR, AR) | Baitly',
+      description:
+        'Vacation rental terms explained in plain words, with their French and Arabic translations: occupancy rate, RevPAR, channel manager, OTA and more.',
     },
     '/conciergeries': {
       title: 'Find a vacation rental property manager | Baitly',
@@ -329,8 +343,13 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
       description:
         'تقارن Hostaway؟ ما تنشره الشركة عن أسعارها، وما يقدّمه بيتلي في السعودية والمغرب وفرنسا، والأسئلة التي تطرحها.',
     },
+    '/ressources': {
+      title: 'موارد الإيجار السياحي: أدلة وأدوات وتدريب | Baitly',
+    },
     '/ressources/calculateur': {
       title: 'حاسبة ربحية الإيجار السياحي | Baitly',
+      description:
+        'احسب مجاناً ربحية إيجارك السياحي: سعر الليلة ونسبة الإشغال والعمولات والمصاريف والخدمات الإضافية. النتيجة الشهرية ونقطة التعادل فوراً.',
     },
     '/ressources/barometre': {
       title: 'مؤشر الليالي السياحية في المغرب | Baitly',
@@ -346,6 +365,8 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     },
     '/ressources/glossaire': {
       title: 'معجم مصطلحات الإيجار السياحي | Baitly',
+      description:
+        'مصطلحات الإيجار السياحي بشرح مبسّط مع ترجمتها إلى الفرنسية والإنجليزية: نسبة الإشغال وRevPAR ومدير القنوات ووكالات السفر الإلكترونية وغيرها.',
     },
     '/conciergeries': {
       title: 'ابحث عن شركة لإدارة الشقق المفروشة | Baitly',

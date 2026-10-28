@@ -13,6 +13,8 @@ import { siteStaticHtml } from '../../tooling/baitlySiteStatic';
 import { siteDocuments } from '../../tooling/baitlySiteContent';
 import { HOME_MESSAGES } from './messages/home';
 import { PAGE_SEARCH } from './siteSeo';
+import { BAITLY_PRICING_MARKETS } from '../data/baitlyLoyaltyPricing';
+import { RESOURCE_GLOSSARY } from '../data/baitlyResourceGlossary';
 
 const catalogSource = readFileSync('site/data/catalog.tsx', 'utf8');
 const pages = metadataCatalog(discoveryCatalog(catalogSource));
@@ -130,6 +132,38 @@ describe('Public metadata', () => {
     expect(doc.querySelector('main')?.textContent).toContain(
       'Visible & useful',
     );
+  });
+
+  it.each(['fr', 'en', 'ar'] as const)(
+    'describes pricing, tools and commercial pages with structured data in %s',
+    (language) => {
+      const types = (path: string) =>
+        pages[language][path].structuredData?.map((data) => data['@type']);
+      const pricing = pages[language]['/tarifs'].structuredData![0];
+      expect(pricing['@type']).toBe('SoftwareApplication');
+      expect(pricing.offers).toHaveLength(
+        Object.keys(BAITLY_PRICING_MARKETS).length * 2,
+      );
+      expect(JSON.stringify(pricing)).toContain('"price":49');
+      const glossary = pages[language]['/ressources/glossaire'].structuredData![0];
+      expect(glossary['@type']).toBe('DefinedTermSet');
+      expect(glossary.hasDefinedTerm).toHaveLength(RESOURCE_GLOSSARY.length);
+      expect(types('/ressources/calculateur')).toEqual(['WebApplication', 'BreadcrumbList']);
+      expect(
+        pages[language]['/ressources/academie'].structuredData![0].itemListElement,
+      ).toHaveLength(ACADEMY_EPISODES.length);
+      expect(types('/produit/pms-channel-manager')).toEqual(['BreadcrumbList']);
+      expect(types('/alternative-guesty')).toEqual(['BreadcrumbList']);
+      expect(JSON.stringify(pages[language]['/tarifs'].structuredData)).not.toMatch(
+        /aggregateRating|reviewCount/,
+      );
+    },
+  );
+
+  it('gives Academy episodes a title that says what they teach', () => {
+    const path = `/ressources/academie/${ACADEMY_EPISODES[0].slug}`;
+    expect(pages.fr[path].title).toContain('Formation location saisonnière');
+    expect(pages.en[path].title).toContain('Vacation rental training');
   });
 
   it('identifies Baitly and its website without invented ratings or endorsements', () => {
