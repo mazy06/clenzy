@@ -241,6 +241,21 @@ export function legalStructuredData(
             })),
           },
         },
+    ...(article?.faq.length
+      ? [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            '@id': url + '#faq',
+            inLanguage: contentLanguage,
+            mainEntity: article.faq.map((item) => ({
+              '@type': 'Question',
+              name: item.q,
+              acceptedAnswer: { '@type': 'Answer', text: item.a },
+            })),
+          },
+        ]
+      : []),
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',

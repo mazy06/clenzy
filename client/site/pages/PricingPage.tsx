@@ -80,7 +80,6 @@ export default function PricingPage() {
               </li>
             ))}
           </ul>
-          <p className="bp-proposal">{m.proposal}</p>
         </div>
         <div>
           <BaitlyLoyaltySimulator
@@ -90,7 +89,9 @@ export default function PricingPage() {
             onMarket={onMarket}
             onProperties={onProperties}
           />
-          <p className="bp-fine-print bp-simulation-note">{m.simulationNote}</p>
+          <p className="bp-fine-print bp-simulation-note">
+            {m.savingsNote} {m.simulationNote} {m.proposal}
+          </p>
         </div>
       </section>
       <BaitlyPricingPlans selection={selection} onPlan={onPlan} />

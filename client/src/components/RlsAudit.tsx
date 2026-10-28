@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   AlertDescription,
@@ -13,33 +13,28 @@ import {
   AlertTitle,
   Badge,
   Button,
-  Card,
-  CardContent,
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
   TableCell,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check, CheckCheck, Info, TriangleAlert, CircleAlert } from '../icons/glyphs';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
 import StatTile from './baitly/StatTile';
+import StatTileRow from './baitly/StatTileRow';
+import FilterChipRow from './FilterChipRow';
+import { useScreenSearch } from './ScreenChrome';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import { MonitoringIntro, MonitoringPanel, MonitoringLoading } from './monitoring/MonitoringSurface';
 import StatusChip from './StatusChip';
 import EmptyState from './EmptyState';
 import { activeIntlLocale } from '../utils/activeLocale';
 import { useTranslation } from '../hooks/useTranslation';
-
-/** Teintes Baitly UI des icones de tuile (classes utilitaires). */
-const VERT = 'text-success';
-const AMBRE = 'text-warning';
-const ROUGE = 'text-destructive';
-const BLEU = 'text-info';
+import { useAuth } from '../hooks/useAuth';
 
 const dateCourte = (iso: string) =>
   new Date(iso).toLocaleDateString(activeIntlLocale(), {
@@ -61,10 +56,12 @@ const joursDepuis = (iso: string) =>
  */
 const RlsAudit: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['rls-audit'],
+  const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
+    queryKey: ['rls-audit', user?.id, user?.organizationId],
+    enabled: !!user, gcTime: 0,
     queryFn: rlsAuditApi.etat,
     refetchInterval: 60_000,
   });
@@ -80,6 +77,18 @@ const RlsAudit: React.FC = () => {
   });
 
   const [confirmerFermetureEnMasse, setConfirmerFermetureEnMasse] = React.useState(false);
+
+  const [view, setView] = useState<'open' | 'resolved' | ''>('');
+  const [search, setSearch] = useState('');
+  const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
+  useScreenSearch(search, setSearch, t('monitoringDesign.searchPaths'));
+  useEffect(() => {
+    setHeaderActions(<Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+      {t('health.refresh')}</Button>);
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, isFetching, refetch, t]);
+  useEffect(() => { setHeaderLastUpdate(dataUpdatedAt ? new Date(dataUpdatedAt) : null); }, [setHeaderLastUpdate, dataUpdatedAt]);
+  if (isLoading) return <MonitoringLoading label={t('monitoringDesign.loading')} />;
 
   if (error) {
     // Distinguer les causes : un message unique ferait chercher au mauvais endroit.
@@ -115,7 +124,7 @@ const RlsAudit: React.FC = () => {
         <CircleAlert />
         <AlertTitle>{t('rlsAudit.inventoryUnavailable')}</AlertTitle>
         <AlertDescription>
-          {(error as { message?: string }).message ?? t('common.unexpectedLoadError')}
+          {t('common.unexpectedLoadError')}
         </AlertDescription>
       </Alert>
     );
@@ -128,8 +137,15 @@ const RlsAudit: React.FC = () => {
     ? ouverts.reduce((a, b) => (a.firstSeenAt < b.firstSeenAt ? a : b))
     : null;
 
+  const inventoryUsable = !!data?.auditActif && !!data.mesureExploitable && !data.sature;
+  const shown = (view === 'open' ? ouverts : view === 'resolved' ? traites : [...ouverts, ...traites])
+    .filter(item => (item.origin + ' ' + item.tableName).toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+
   return (
-    <div>
+    <div className="bui-monitor">
+      <MonitoringIntro title={t('monitoringDesign.rlsTitle')} description={t('monitoringDesign.rlsDescription')}
+        status={t(inventoryUsable ? 'monitoringDesign.inventoryMeasured' : 'monitoringDesign.inventoryToConfirm')}
+        tone={inventoryUsable ? 'neutral' : 'warn'} />
       {/* Le drapeau le plus important de l'ecran : sans lui, on lirait un inventaire
           trompeur comme un vrai constat. */}
       {data && data.auditActif && !data.mesureExploitable && (
@@ -183,82 +199,28 @@ const RlsAudit: React.FC = () => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-12 gap-3 mb-[18px]">
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-          <StatTile
-            icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
-            label={t('rlsAudit.pathsToHandle')}
-            value={isLoading ? '—' : ouverts.length + enAttente}
-            iconClassName={ouverts.length + enAttente === 0 ? VERT : ROUGE}
-            loading={isLoading}
-            hint={
-              ouverts.length + enAttente === 0
-                ? t('rlsAudit.activationReady')
-                : enAttente > 0 && ouverts.length === 0
-                  ? t('rlsAudit.detectedNotWritten', { count: enAttente })
-                  : t('rlsAudit.cannotActivate')
-            }
-          />
-        </div>
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-          <StatTile
-            icon={<Check />}
-            label={t('rlsAudit.pathsHandled')}
-            value={isLoading ? '—' : traites.length}
-            iconClassName={VERT}
-            loading={isLoading}
-            hint={t('rlsAudit.pathsHandledHint')}
-          />
-        </div>
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-          <StatTile
-            icon={<Clock />}
-            label={t('rlsAudit.oldestFinding')}
-            value={plusAncien ? `${joursDepuis(plusAncien.firstSeenAt)} j` : '—'}
-            iconClassName={AMBRE}
-            loading={isLoading}
-            hint={t('rlsAudit.oldestFindingHint')}
-          />
-        </div>
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-          <StatTile
-            icon={<Layers />}
-            label={t('rlsAudit.awaitingWrite')}
-            value={isLoading ? '—' : enAttente}
-            iconClassName={BLEU}
-            loading={isLoading}
-            hint={t('rlsAudit.awaitingWriteHint')}
-          />
-        </div>
-      </div>
+      <StatTileRow compact>
+        <StatTile icon={<ShieldAlert />} label={t('rlsAudit.pathsToHandle')} value={ouverts.length + enAttente}
+          hint={inventoryUsable ? t('rlsAudit.cannotActivate') : t('monitoringDesign.inventoryToConfirm')} />
+        <StatTile icon={<Check />} label={t('rlsAudit.pathsHandled')} value={traites.length} />
+        <StatTile icon={<Clock />} label={t('rlsAudit.oldestFinding')}
+          value={plusAncien ? Math.max(0, joursDepuis(plusAncien.firstSeenAt)).toLocaleString(activeIntlLocale(), { style: 'unit', unit: 'day', unitDisplay: 'short' }) : '—'} />
+        <StatTile icon={<Layers />} label={t('rlsAudit.awaitingWrite')} value={enAttente} />
+      </StatTileRow>
 
-      <Card>
-        <CardContent>
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div>
-              <h6 className="text-sm font-semibold text-foreground mb-0.5">
-                {t('rlsAudit.noContextPaths')}
-              </h6>
-              <p className="text-xs text-muted-foreground">
-                {t('rlsAudit.noContextPathsBody')}
-              </p>
-            </div>
-            {/* Un correctif structurel rend tout l'inventaire caduc d'un coup : le fermer
-                ligne a ligne ferait cliquer sans lire. Le bouton n'apparait que s'il y a
-                quelque chose a fermer. */}
-            {ouverts.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                disabled={marquerTousTraites.isPending}
-                onClick={() => setConfirmerFermetureEnMasse(true)}
-              >
-                <CheckCheck />
-                {t('rlsAudit.markAllHandled')}
-              </Button>
-            )}
-          </div>
+      <MonitoringPanel title={t('rlsAudit.noContextPaths')} description={t('rlsAudit.noContextPathsBody')}
+        action={ouverts.length > 0 ? <Button variant="outline" size="sm" disabled={marquerTousTraites.isPending}
+          onClick={() => setConfirmerFermetureEnMasse(true)}><CheckCheck />{t('rlsAudit.markAllHandled')}</Button> : undefined}>
+        <div className="py-3">
+          <FilterChipRow value={view} onChange={setView} allLabel={t('auditLog.all')} allCount={ouverts.length + traites.length}
+            options={[
+              { value: 'open', label: t('rlsAudit.pathsToHandle'), count: ouverts.length, color: 'var(--bui-warning-ink)' },
+              { value: 'resolved', label: t('rlsAudit.pathsHandled'), count: traites.length, color: 'var(--bui-success-ink)' },
+            ]} />
+        </div>
+        {(marquerTraite.isError || marquerTousTraites.isError) && <Alert variant="destructive" className="mb-3">
+          <CircleAlert /><AlertDescription>{t('monitoringDesign.resolveError')}</AlertDescription>
+        </Alert>}
 
           {/* Ce que la fermeture n'a pas couvert. Sans ce rappel, les constats arrives en
               retard reapparaitraient etiquetes « reapparu apres correction » — un faux
@@ -278,13 +240,11 @@ const RlsAudit: React.FC = () => {
             </Alert>
           )}
 
-          {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
+          {shown.length === 0 ? (
             <EmptyState
               icon={<ShieldCheck />}
-              title={t('rlsAudit.empty')}
-              description={t(data?.mesureExploitable
-                ? 'rlsAudit.emptyMeaningful'
-                : 'rlsAudit.emptyWorthless')}
+              variant="transparent" title={t(ouverts.length + traites.length === 0 ? 'rlsAudit.empty' : 'monitoringDesign.noPathMatches')}
+              description={t(ouverts.length + traites.length > 0 ? 'monitoringDesign.changeFilters' : inventoryUsable ? 'rlsAudit.emptyMeaningful' : 'rlsAudit.emptyWorthless')}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -300,26 +260,21 @@ const RlsAudit: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...ouverts, ...traites].map((chemin: RlsAuditFinding) => {
+                  {shown.map((chemin: RlsAuditFinding) => {
                     const reapparu =
                       chemin.resolvedAt !== null && chemin.lastSeenAt > chemin.resolvedAt;
                     return (
                       <TableRow key={chemin.id}>
                         <TableCell className="font-mono text-[0.8125rem]">
-                          {/* Sans extrait SQL il n'y a rien a survoler : le Tooltip du kit
-                              afficherait une bulle vide la ou MUI n'en montrait aucune. */}
-                          {chemin.sqlExcerpt ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>{chemin.origin}</span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" align="start">
-                                {chemin.sqlExcerpt}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span>{chemin.origin}</span>
-                          )}
+                          {/* Le détail reste accessible au clavier et au toucher. */}
+                          {chemin.sqlExcerpt ? <details>
+                            <summary className="cursor-pointer break-words rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
+                              {chemin.origin}
+                            </summary>
+                            <code className="mt-2 block max-w-[48ch] whitespace-pre-wrap break-all rounded-md bg-muted p-3 text-xs">
+                              {chemin.sqlExcerpt}
+                            </code>
+                          </details> : <span className="break-words">{chemin.origin}</span>}
                           {reapparu && (
                             <StatusChip tone="warn" label={t('rlsAudit.reappeared')} className="ms-1.5" />
                           )}
@@ -357,8 +312,7 @@ const RlsAudit: React.FC = () => {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </MonitoringPanel>
 
       <AlertDialog open={confirmerFermetureEnMasse} onOpenChange={setConfirmerFermetureEnMasse}>
         <AlertDialogContent>

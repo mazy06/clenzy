@@ -18,18 +18,14 @@ export interface BaitlyLoyaltyMessages {
   volumeHint: string;
   averageUnit: string;
   totalFor: string;
-  calculation: string;
   beforeDiscounts: string;
-  volumeSubtotal: string;
   volumeSavings: string;
   loyaltySavings: string;
   propertyWords: [string, string];
-  month: string;
   phase: string;
+  seniority: string;
   periods: [string, string, string, string];
-  milestones: [string, string, string, string];
   stageCopy: [string, string, string, string];
-  base: string;
   stable: string;
   unit: string;
   monthly: string;
@@ -38,9 +34,6 @@ export interface BaitlyLoyaltyMessages {
   savings: string;
   savingsNote: string;
   simulationNote: string;
-  play: string;
-  pause: string;
-  replay: string;
   plansTitle: string;
   plansCopy: string;
   needs: string;
@@ -115,23 +108,19 @@ const fr: BaitlyLoyaltyMessages = {
     'Chaque remise s’applique uniquement aux logements de sa tranche.',
   averageUnit: 'Prix moyen / logement / mois, HT',
   totalFor: 'Total pour',
-  calculation: 'Voir le détail du calcul',
   beforeDiscounts: 'Total avant remises',
-  volumeSubtotal: 'Après remise de volume',
   volumeSavings: 'Économie de volume',
   loyaltySavings: 'Économie de fidélité',
   propertyWords: ['logement', 'logements'],
-  month: 'Mois',
   phase: 'Explorer les paliers de fidélité',
+  seniority: 'Votre ancienneté chez Baitly',
   periods: ['Mois 1 à 3', 'Mois 4 à 6', 'Mois 7 à 12', 'Dès le mois 13'],
-  milestones: ['À vos débuts', 'Après 3 mois', 'Après 6 mois', 'Après 12 mois'],
   stageCopy: [
     'Vous démarrez avec tous les services de votre offre.',
     'Votre première baisse, sans perdre une fonctionnalité.',
     'Votre fidélité compte, votre abonnement baisse encore.',
     'Le dernier palier est atteint. Ce tarif se stabilise.',
   ],
-  base: 'Tarif de départ',
   stable: 'Tarif fidélité',
   unit: '/ logement / mois, HT',
   monthly: 'Votre mensualité',
@@ -142,9 +131,6 @@ const fr: BaitlyLoyaltyMessages = {
     'Comparé au tarif de base sans remise, pour le même parc pendant 12 mois.',
   simulationNote:
     'Simulation hors taxes, hors options et frais de tiers. Mensualités, sans paiement annuel anticipé. À partir de 50 logements, une proposition sur mesure.',
-  play: 'Animer les paliers',
-  pause: 'Mettre en pause',
-  replay: 'Rejouer les paliers',
   plansTitle: 'Votre activité. Votre offre.',
   plansCopy: 'Deux offres. Les mêmes remises de volume et de fidélité.',
   needs: 'Quel est votre besoin principal ?',
@@ -350,28 +336,19 @@ const en: BaitlyLoyaltyMessages = {
   volumeHint: 'Each discount applies only to the properties in its band.',
   averageUnit: 'Average / property / month, excl. tax',
   totalFor: 'Total for',
-  calculation: 'See the calculation',
   beforeDiscounts: 'Total before discounts',
-  volumeSubtotal: 'After volume discount',
   volumeSavings: 'Volume savings',
   loyaltySavings: 'Loyalty savings',
   propertyWords: ['property', 'properties'],
-  month: 'Month',
   phase: 'Explore loyalty milestones',
+  seniority: 'Time with Baitly',
   periods: ['Months 1–3', 'Months 4–6', 'Months 7–12', 'From month 13'],
-  milestones: [
-    'Getting started',
-    'After 3 months',
-    'After 6 months',
-    'After 12 months',
-  ],
   stageCopy: [
     'Start with every service in your plan.',
     'Your first reduction, with all your features.',
     'Your loyalty earns another price reduction.',
     'You have reached the final tier. This rate stays stable.',
   ],
-  base: 'Starting price',
   stable: 'Loyalty price',
   unit: '/ property / month, excl. tax',
   monthly: 'Your monthly total',
@@ -382,9 +359,6 @@ const en: BaitlyLoyaltyMessages = {
     'Compared with the undiscounted base rate for the same portfolio over 12 months.',
   simulationNote:
     'Simulation excludes taxes, options and third-party fees. Monthly payments, no annual prepayment. For 50 or more properties, request a custom proposal.',
-  play: 'Animate the milestones',
-  pause: 'Pause',
-  replay: 'Replay the milestones',
   plansTitle: 'Your business. Your plan.',
   plansCopy: 'Two plans. The same volume and loyalty discounts.',
   needs: 'What is your main priority?',
@@ -584,28 +558,24 @@ const ar: BaitlyLoyaltyMessages = {
   volumeHint: 'يُطبّق كل خصم فقط على الوحدات ضمن شريحته.',
   averageUnit: 'المتوسط / وحدة / شهرياً، دون ضريبة',
   totalFor: 'الإجمالي لـ',
-  calculation: 'عرض تفاصيل الحساب',
   beforeDiscounts: 'الإجمالي قبل الخصومات',
-  volumeSubtotal: 'بعد خصم العدد',
   volumeSavings: 'توفير العدد',
   loyaltySavings: 'توفير الوفاء',
   propertyWords: ['وحدة', 'وحدات'],
-  month: 'الشهر',
   phase: 'استكشف مراحل الوفاء',
+  seniority: 'مدة اشتراكك في Baitly',
   periods: [
     'الأشهر 1 إلى 3',
     'الأشهر 4 إلى 6',
     'الأشهر 7 إلى 12',
     'من الشهر 13',
   ],
-  milestones: ['عند البداية', 'بعد 3 أشهر', 'بعد 6 أشهر', 'بعد 12 شهراً'],
   stageCopy: [
     'ابدأ بكل خدمات خطتك.',
     'أول تخفيض مع الحفاظ على كل المزايا.',
     'وفاؤك يُكافأ بانخفاض جديد للسعر.',
     'وصلت إلى المرحلة النهائية. يستقر السعر عند هذا الحد.',
   ],
-  base: 'سعر البداية',
   stable: 'سعر الوفاء',
   unit: '/ وحدة / شهرياً، دون ضريبة',
   monthly: 'إجمالي اشتراكك الشهري',
@@ -616,9 +586,6 @@ const ar: BaitlyLoyaltyMessages = {
     'مقارنةً بالسعر الأساسي دون خصومات للعدد نفسه من الوحدات طوال 12 شهراً.',
   simulationNote:
     'المحاكاة لا تشمل الضرائب والخيارات ورسوم الجهات الخارجية. دفعات شهرية دون دفع سنوي مسبق. ابتداءً من 50 وحدة، اطلب عرضاً مخصصاً.',
-  play: 'شغّل عرض المراحل',
-  pause: 'إيقاف مؤقت',
-  replay: 'أعد عرض المراحل',
   plansTitle: 'نشاطك. خطتك.',
   plansCopy: 'خطتان. وخصومات العدد والوفاء نفسها.',
   needs: 'ما أولويتك الرئيسية؟',

@@ -67,6 +67,10 @@ const fr = {
       status: 'Statut du service',
     },
     rights: '© 2026 Baitly. Tous droits réservés.',
+    preferredSource: {
+      eyebrow: 'Suivez Baitly sur Google',
+      action: 'Ajouter comme source préférée',
+    },
   },
   shell: {
     skip: 'Aller au contenu',
@@ -135,6 +139,10 @@ const en: LayoutMessages = {
       status: 'Service status',
     },
     rights: '© 2026 Baitly. All rights reserved.',
+    preferredSource: {
+      eyebrow: 'Follow Baitly on Google',
+      action: 'Add as a preferred source',
+    },
   },
   shell: {
     skip: 'Skip to content',
@@ -201,6 +209,10 @@ const ar: LayoutMessages = {
       status: 'حالة الخدمة',
     },
     rights: '© 2026 بيتلي. جميع الحقوق محفوظة.',
+    preferredSource: {
+      eyebrow: 'تابع بيتلي على Google',
+      action: 'أضفه كمصدر مفضّل',
+    },
   },
   shell: {
     skip: 'تخطَّ إلى المحتوى',

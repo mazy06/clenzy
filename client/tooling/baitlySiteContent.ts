@@ -49,6 +49,13 @@ import {
 } from '../site/data/legal';
 import { BAITLY_COUNTRY_PAGES } from '../site/data/baitlyCountries';
 import { BAITLY_COUNTRY_MESSAGES } from '../site/lib/messages/baitlyCountries';
+import {
+  ALTERNATIVES_CHECKED_AT,
+  BAITLY_ALTERNATIVE_PAGES,
+  BAITLY_ALTERNATIVE_VENDORS,
+  alternativePath,
+} from '../site/data/baitlyAlternatives';
+import { BAITLY_ALTERNATIVE_MESSAGES } from '../site/lib/messages/baitlyAlternatives';
 
 export const DISCOVERY_LANGUAGES = ['fr', 'en', 'ar'] as const;
 export const PRIVATE_SITE_PATHS = [
@@ -367,6 +374,36 @@ export function siteDocuments(
       ),
       faq(page.faq),
       `[${countries.demo}](/demo?lang=${language})`,
+    );
+  }
+  const alternatives = BAITLY_ALTERNATIVE_MESSAGES[language];
+  for (const slug of BAITLY_ALTERNATIVE_PAGES) {
+    const page = alternatives.vendors[slug];
+    const { name, pricingUrl } = BAITLY_ALTERNATIVE_VENDORS[slug];
+    const named = (text: string) => text.replace('{name}', name);
+    add(
+      alternativePath(slug),
+      page.title,
+      page.intro,
+      section(
+        named(alternatives.publishedTitle),
+        alternatives.publishedCopy,
+        list(page.facts),
+        `[${alternatives.source} ${name}](${pricingUrl}) · ${ALTERNATIVES_CHECKED_AT}`,
+      ),
+      section(
+        alternatives.baitlyTitle,
+        alternatives.baitlyCopy,
+        features(alternatives.baitlyPoints),
+      ),
+      section(
+        alternatives.questionsTitle,
+        named(alternatives.questionsCopy),
+        list(alternatives.questions),
+      ),
+      alternatives.note,
+      faq(page.faq),
+      `[${alternatives.demo}](/demo?lang=${language})`,
     );
   }
   const contact = BAITLY_CONTACT_MESSAGES[language];

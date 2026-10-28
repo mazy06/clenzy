@@ -294,8 +294,8 @@ export function useCommandCatalog({
         <Palette />, go('/admin/design-system'), 'design composant kit baitly ui');
     }
     if (admin) {
-      tool('token-monitoring', t('commandCenter.tools.tokenMonitoring', 'Consommation IA'),
-        <Assessment />, go('/admin/token-monitoring'), 'token coût cout crédit credit ia');
+      tool('token-monitoring', t('commandCenter.tools.tokenMonitoring', 'Sessions JWT'),
+        <Assessment />, go('/admin/monitoring?tab=tokens'), 'token session jwt jeton authentification connexion');
     }
 
     return commands;

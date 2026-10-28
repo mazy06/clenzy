@@ -249,10 +249,10 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
   ],
 
   '/admin/monitoring': [
-    { key: 'tokens', translationKey: 'tabHeaders.monitoring.tabs.tokens', fallbackLabel: 'Monitoring des Tokens', icon: <Security /> },
-    { key: 'keycloak', translationKey: 'tabHeaders.monitoring.tabs.keycloak', fallbackLabel: 'Métriques Keycloak', icon: <TrendingUp /> },
-    { key: 'audit', translationKey: 'tabHeaders.monitoring.tabs.audit', fallbackLabel: 'Audit et Logging', icon: <Assignment /> },
-    { key: 'health-checks', translationKey: 'tabHeaders.monitoring.tabs.healthChecks', fallbackLabel: 'Health Checks Avancés', icon: <HealthAndSafety /> },
+    { key: 'tokens', translationKey: 'tabHeaders.monitoring.tabs.tokens', fallbackLabel: 'Sessions JWT', icon: <Security /> },
+    { key: 'keycloak', translationKey: 'tabHeaders.monitoring.tabs.keycloak', fallbackLabel: 'Authentification', icon: <TrendingUp /> },
+    { key: 'audit', translationKey: 'tabHeaders.monitoring.tabs.audit', fallbackLabel: 'Journal d’audit', icon: <Assignment /> },
+    { key: 'health-checks', translationKey: 'tabHeaders.monitoring.tabs.healthChecks', fallbackLabel: 'Santé des services', icon: <HealthAndSafety /> },
     { key: 'rls-audit', translationKey: 'tabHeaders.monitoring.tabs.rlsAudit', fallbackLabel: 'Isolation RLS', icon: <ReportProblem /> },
   ],
 

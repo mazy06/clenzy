@@ -13,6 +13,7 @@ const loaders = {
   MigrationPage: () => import('./pages/MigrationPage'),
   ComparePage: () => import('./pages/ComparePage'),
   CountryPage: () => import('./pages/CountryPage'),
+  AlternativePage: () => import('./pages/AlternativePage'),
   ResourcesPage: () => import('./pages/ResourcesPage'),
   BaitlyResourcePage: () => import('./pages/BaitlyResourcePage'),
   BaitlyLegalPage: () => import('./pages/BaitlyLegalPage'),
@@ -48,6 +49,7 @@ const lazyPages = {
   MigrationPage: lazy(loaders.MigrationPage),
   ComparePage: lazy(loaders.ComparePage),
   CountryPage: lazy(loaders.CountryPage),
+  AlternativePage: lazy(loaders.AlternativePage),
   ResourcesPage: lazy(loaders.ResourcesPage),
   BaitlyResourcePage: lazy(loaders.BaitlyResourcePage),
   BaitlyLegalPage: lazy(loaders.BaitlyLegalPage),
@@ -88,6 +90,10 @@ export function initialPageKey(pathname: string): PageKey {
     '/maroc': 'CountryPage',
     '/arabie-saoudite': 'CountryPage',
     '/france': 'CountryPage',
+    '/alternative-guesty': 'AlternativePage',
+    '/alternative-lodgify': 'AlternativePage',
+    '/alternative-smoobu': 'AlternativePage',
+    '/alternative-hostaway': 'AlternativePage',
     '/ressources': 'ResourcesPage',
     '/prestataires': 'ProvidersPage',
     '/prestataires/inscription': 'ProviderSignupPage',
@@ -135,6 +141,7 @@ export default function SiteApp({
     MigrationPage,
     ComparePage,
     CountryPage,
+    AlternativePage,
     ResourcesPage,
     BaitlyResourcePage,
     BaitlyLegalPage,
@@ -169,6 +176,22 @@ export default function SiteApp({
               element={<CountryPage country="arabie-saoudite" />}
             />
             <Route path="/france" element={<CountryPage country="france" />} />
+            <Route
+              path="/alternative-guesty"
+              element={<AlternativePage vendor="guesty" />}
+            />
+            <Route
+              path="/alternative-lodgify"
+              element={<AlternativePage vendor="lodgify" />}
+            />
+            <Route
+              path="/alternative-smoobu"
+              element={<AlternativePage vendor="smoobu" />}
+            />
+            <Route
+              path="/alternative-hostaway"
+              element={<AlternativePage vendor="hostaway" />}
+            />
             <Route path="/ressources" element={<ResourcesPage />} />
             <Route
               path="/ressources/calculateur"

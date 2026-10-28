@@ -1,10 +1,4 @@
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import PricingPage from '../pages/PricingPage';
@@ -13,34 +7,16 @@ import { SiteLanguageProvider } from '../lib/siteLanguage';
 vi.mock('../lib/siteLaunch', () => ({
   useSiteLaunch: () => ({ paused: true }),
 }));
-let intersection: IntersectionObserverCallback;
 beforeEach(() => {
-  vi.useFakeTimers();
   sessionStorage.clear();
   vi.stubGlobal('navigator', {
     ...navigator,
     language: 'fr-FR',
     languages: ['fr-FR'],
   });
-  vi.stubGlobal('matchMedia', () => ({
-    matches: false,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
-  vi.stubGlobal(
-    'IntersectionObserver',
-    class {
-      constructor(callback: IntersectionObserverCallback) {
-        intersection = callback;
-      }
-      observe() {}
-      disconnect() {}
-    },
-  );
 });
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 const mount = () =>
@@ -51,16 +27,17 @@ const mount = () =>
       </SiteLanguageProvider>
     </MemoryRouter>,
   );
-const amount = () =>
-  `${screen.getByTestId('loyalty-monthly').querySelector('.site-money')?.getAttribute('data-amount')?.replace('.', ',')}${screen.getByTestId('loyalty-monthly').querySelector('.site-money')?.getAttribute('data-currency')}`;
-const month = () => screen.getByRole('slider', { name: /Mois/ });
-const tick = () => act(() => vi.advanceTimersByTime(1600));
+const text = (id: string) =>
+  `${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-amount')?.replace('.', ',')}${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-currency')}`;
+const amount = () => text('loyalty-monthly');
+const stage = (name: string) =>
+  fireEvent.click(screen.getByRole('button', { name }));
 
 describe('Baitly loyalty simulator', () => {
-  it('recalculates months, properties, plans and markets without creating a subscription', () => {
+  it('recalculates seniority, properties, plans and markets without creating a subscription', () => {
     mount();
     expect(amount()).toBe('490MAD');
-    fireEvent.change(month(), { target: { value: '7' } });
+    stage('Mois 7 à 12 : −20 %');
     fireEvent.change(
       screen.getByRole('slider', { name: 'Nombre de logements' }),
       { target: { value: '3' } },
@@ -72,7 +49,7 @@ describe('Baitly loyalty simulator', () => {
         .querySelector('.site-money')
         ?.getAttribute('data-amount'),
     ).toBe('15435');
-    fireEvent.change(month(), { target: { value: '13' } });
+    stage('Dès le mois 13 : −30 %');
     expect(amount()).toBe('1029MAD');
     fireEvent.click(
       screen.getByRole('button', { name: 'Gérer et vendre en direct' }),
@@ -93,23 +70,20 @@ describe('Baitly loyalty simulator', () => {
       '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=3',
     ]);
   });
-  it('plays all four tiers once, stops at the stable tier and can replay', () => {
+  it('walks the four loyalty stages and marks the current one', () => {
     mount();
-    fireEvent.click(screen.getByRole('button', { name: 'Animer les paliers' }));
-    tick();
+    stage('Mois 4 à 6 : −10 %');
     expect(amount()).toBe('441MAD');
-    tick();
+    stage('Mois 7 à 12 : −20 %');
     expect(amount()).toBe('392MAD');
-    tick();
+    stage('Dès le mois 13 : −30 %');
     expect(amount()).toBe('343MAD');
     expect(
-      screen.getByRole('button', { name: 'Rejouer les paliers' }),
-    ).toBeTruthy();
-    act(() => vi.advanceTimersByTime(30000));
-    expect(amount()).toBe('343MAD');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Rejouer les paliers' }),
-    );
+      screen
+        .getByRole('button', { name: 'Dès le mois 13 : −30 %' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    stage('Mois 1 à 3 : 0 %');
     expect(amount()).toBe('490MAD');
   });
   it('updates volume, loyalty, plan averages and exact monthly totals together', () => {
@@ -118,10 +92,8 @@ describe('Baitly loyalty simulator', () => {
       screen.getByRole('button', { name: '10–19 logements : −15 %' }),
     );
     expect(amount()).toBe('4581,5MAD');
-    fireEvent.change(month(), { target: { value: '13' } });
+    stage('Dès le mois 13 : −30 %');
     expect(amount()).toBe('3207,05MAD');
-    const text = (id: string) =>
-      `${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-amount')?.replace('.', ',')}${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-currency')}`;
     expect(text('plan-pro-unit')).toBe('320,71MAD');
     expect(text('plan-pro-total')).toBe('3207,05MAD');
     expect(text('loyalty-year')).toBe('48105,75MAD');
@@ -135,35 +107,5 @@ describe('Baitly loyalty simulator', () => {
       screen.getByRole('button', { name: '1–4 logements : 0 %' }),
     );
     expect(amount()).toBe('34,3EUR');
-  });
-  it('pauses for manual input and when the simulation leaves the viewport', () => {
-    mount();
-    fireEvent.click(screen.getByRole('button', { name: 'Animer les paliers' }));
-    tick();
-    fireEvent.change(month(), { target: { value: '8' } });
-    tick();
-    expect(amount()).toBe('392MAD');
-    fireEvent.click(screen.getByRole('button', { name: 'Animer les paliers' }));
-    act(() =>
-      intersection(
-        [{ isIntersecting: false } as IntersectionObserverEntry],
-        {} as IntersectionObserver,
-      ),
-    );
-    tick();
-    expect(amount()).toBe('490MAD');
-  });
-  it('offers manual exploration without animation for reduced motion', () => {
-    vi.stubGlobal('matchMedia', () => ({
-      matches: true,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }));
-    mount();
-    expect(
-      screen.queryByRole('button', { name: 'Animer les paliers' }),
-    ).toBeNull();
-    fireEvent.change(month(), { target: { value: '18' } });
-    expect(amount()).toBe('343MAD');
   });
 });

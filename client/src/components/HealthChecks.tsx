@@ -1,375 +1,144 @@
-import React, { useState, useEffect } from 'react';
-import StatusChip, { type StatusTone } from './StatusChip';
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  Button,
-  Card,
-  CardContent,
-  Collapsible,
-  CollapsibleContent,
-  Progress,
-  Separator,
-  Spinner,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from './ui';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  CheckCircle,
-  Error as ErrorIcon,
-  Warning,
-  Info,
-  HealthAndSafety,
-  Refresh,
-  ExpandMore,
-  ExpandLess,
-  Wifi,
-  Speed,
-  Security,
-  Storage as StorageIcon,
-  Memory,
-} from '../icons';
-import { monitoringApi } from '../services/api/monitoringApi';
-import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
+import { Alert, AlertAction, AlertDescription, Button, Progress } from './ui';
+import { HealthAndSafety, Security, Storage, Memory, Wifi, Speed, Info, Refresh, ExpandMore } from '../icons';
+import StatusChip, { type StatusTone } from './StatusChip';
 import StatTile from './baitly/StatTile';
+import StatTileRow from './baitly/StatTileRow';
+import EmptyState from './EmptyState';
+import FilterChipRow from './FilterChipRow';
+import { useScreenSearch } from './ScreenChrome';
+import { monitoringApi } from '../services/api/monitoringApi';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../hooks/useAuth';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { MonitoringIntro, MonitoringPanel, MonitoringLoading, monitoringNumber, monitoringDate } from './monitoring/MonitoringSurface';
 
-// Statut sante → ton semantique de StatusChip. La table locale de couples
-// {fg,bg} qui vivait ici etait strictement l'equivalent de STATUS_TONES : le
-// couple `-ink` / `-soft` conforme AA est desormais tenu par la primitive.
-const STATUS_TONE: Record<string, StatusTone> = {
-  UP: 'ok',
-  DOWN: 'err',
-  DEGRADED: 'warn',
+const toneFor = (status: string): StatusTone =>
+  status === 'UP' ? 'ok' : status === 'DOWN' ? 'err' : status === 'DEGRADED' ? 'warn' : 'neutral';
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  DATABASE: <Storage size={20} />, CACHE: <Memory size={20} />, STORAGE: <Storage size={20} />,
+  AUTHENTICATION: <Security size={20} />, API: <Speed size={20} />, NETWORK: <Wifi size={20} />,
+  MONITORING: <HealthAndSafety size={20} />,
 };
 
-const statusTone = (status: string): StatusTone => STATUS_TONE[status] ?? 'neutral';
-
-// Teintes Baitly UI de l'icone de tuile (classes utilitaires)
-const STATUS_ICON_CLASS: Record<string, string> = {
-  UP: 'text-success',
-  DOWN: 'text-destructive',
-  DEGRADED: 'text-warning',
-};
-
-const statusIconClass = (status: string) => STATUS_ICON_CLASS[status] ?? 'text-info';
-
-// Icone decorative : la teinte VIVE, pas l'encre (§2.4 du contrat Baitly UI).
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'UP':
-      return <span className="inline-flex text-success"><CheckCircle size={20} strokeWidth={1.75} /></span>;
-    case 'DOWN':
-      return <span className="inline-flex text-destructive"><ErrorIcon size={20} strokeWidth={1.75} /></span>;
-    case 'DEGRADED':
-      return <span className="inline-flex text-warning"><Warning size={20} strokeWidth={1.75} /></span>;
-    default:
-      return <span className="inline-flex text-info"><Info size={20} strokeWidth={1.75} /></span>;
-  }
-};
-
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'DATABASE':
-      return <StorageIcon size={20} strokeWidth={1.75} />;
-    case 'AUTHENTICATION':
-      return <Security size={20} strokeWidth={1.75} />;
-    case 'API':
-      return <Speed size={20} strokeWidth={1.75} />;
-    case 'CACHE':
-      return <Memory size={20} strokeWidth={1.75} />;
-    case 'STORAGE':
-      return <StorageIcon size={20} strokeWidth={1.75} />;
-    case 'NOTIFICATIONS':
-      return <Info size={20} strokeWidth={1.75} />;
-    case 'MONITORING':
-      return <HealthAndSafety size={20} strokeWidth={1.75} />;
-    case 'NETWORK':
-      return <Wifi size={20} strokeWidth={1.75} />;
-    default:
-      return <Info size={20} strokeWidth={1.75} />;
-  }
-};
-
-const responseTimeTone = (responseTime: number): StatusTone => {
-  if (responseTime <= 100) return 'ok';
-  if (responseTime <= 300) return 'warn';
-  return 'err';
-};
-
-const formatUptime = (seconds: number): string => {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days}j ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-};
-
-const HealthChecks: React.FC = () => {
+export default function HealthChecks() {
   const { t } = useTranslation();
-  const [expandedChecks, setExpandedChecks] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
   const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
-
-  // Poll 30 s via react-query : refetch immédiat au mount, pause automatique
-  // quand l'onglet est caché (refetchIntervalInBackground=false par défaut) —
-  // l'ancien setInterval brut tournait indéfiniment onglet caché.
-  const {
-    data,
-    error: queryError,
-    isLoading,
-    isFetching,
-    refetch,
-    dataUpdatedAt,
-  } = useQuery({
-    queryKey: ['monitoring', 'health'],
-    queryFn: () => monitoringApi.getHealth(),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false,
+  const [filter, setFilter] = useState<'attention' | ''>('');
+  const [search, setSearch] = useState('');
+  useScreenSearch(search, setSearch, t('monitoringDesign.searchServices'));
+  const { data, error, isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['monitoring', 'health', user?.id, user?.organizationId], enabled: !!user, gcTime: 0, queryFn: monitoringApi.getHealth,
+    refetchInterval: 30_000, refetchOnWindowFocus: false,
   });
-
-  const healthChecks: HealthCheckService[] = data?.services ?? [];
-  const systemMetrics: SystemMetrics | null = data?.systemMetrics ?? null;
-  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
-  const loading = isFetching;
-  const error = queryError ? t('monitoring.healthFetchError') : null;
-
-  const handleRefresh = () => {
-    void refetch();
-  };
-
-  // Register page-header actions + last-update timestamp.
   useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-1.5">
-        {loading && <Spinner className="size-4" />}
-        <Tooltip>
-          {/* Le declencheur Radix pose une ref : les primitives du kit sont des
-              fonctions et n'en transmettent pas — d'ou le span intermediaire. */}
-          <TooltipTrigger asChild>
-            <span className="inline-flex">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('health.refresh')}
-                onClick={handleRefresh}
-              >
-                <Refresh size={20} strokeWidth={1.75} />
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{t('health.refresh')}</TooltipContent>
-        </Tooltip>
-      </div>,
-    );
+    setHeaderActions(<Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+      <Refresh size={16} />{t('health.refresh')}
+    </Button>);
     return () => setHeaderActions(null);
-  }, [setHeaderActions, loading]);
-
+  }, [setHeaderActions, isFetching, refetch, t]);
   useEffect(() => {
-    setHeaderLastUpdate(lastUpdate);
-  }, [setHeaderLastUpdate, lastUpdate]);
+    setHeaderLastUpdate(dataUpdatedAt ? new Date(dataUpdatedAt) : null);
+  }, [setHeaderLastUpdate, dataUpdatedAt]);
 
-  const toggleExpanded = (checkName: string) => {
-    const newExpanded = new Set(expandedChecks);
-    if (newExpanded.has(checkName)) {
-      newExpanded.delete(checkName);
-    } else {
-      newExpanded.add(checkName);
-    }
-    setExpandedChecks(newExpanded);
-  };
+  const checks = data?.services ?? [];
+  const up = checks.filter(check => check.status === 'UP').length;
+  const attention = checks.filter(check => check.status !== 'UP');
+  const criticalIssues = attention.filter(check => check.critical);
+  const unknown = checks.filter(check => !['UP', 'DOWN', 'DEGRADED'].includes(check.status)).length;
+  const state = !checks.length || error ? 'UNKNOWN' :
+    checks.some(check => check.status === 'DOWN') ? 'DOWN' :
+    checks.some(check => check.status === 'DEGRADED') ? 'DEGRADED' : unknown ? 'UNKNOWN' : 'UP';
+  const statusLabel = (status: string) => t('monitoringDesign.status.' + status, { defaultValue: status });
+  const shown = (filter ? attention : checks).filter(check =>
+    (check.name + ' ' + check.category).toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+    .sort((a, b) => {
+      const priority = (s: string) => s === 'DOWN' ? 0 : s === 'DEGRADED' ? 1 : s === 'UNKNOWN' ? 2 : 3;
+      return priority(a.status) - priority(b.status) || Number(b.critical) - Number(a.critical);
+    });
+  const metrics = data?.systemMetrics;
+  const uptime = metrics && Number.isFinite(metrics.uptimeSeconds) ? [
+    { value: Math.floor(metrics.uptimeSeconds / 86400), unit: 'day' },
+    { value: Math.floor(metrics.uptimeSeconds % 86400 / 3600), unit: 'hour' },
+    { value: Math.floor(metrics.uptimeSeconds % 3600 / 60), unit: 'minute' },
+  ].filter(part => part.value > 0 || part.unit === 'minute')
+    .map(part => part.value.toLocaleString(activeIntlLocale(), { style: 'unit', unit: part.unit, unitDisplay: 'short' })).join(' ') : '—';
 
-  const overallStatus = healthChecks.length > 0 ?
-    healthChecks.every(check => check.status === 'UP') ? 'UP' :
-    healthChecks.some(check => check.status === 'DOWN') ? 'DOWN' : 'DEGRADED' : 'UNKNOWN';
-
-  const criticalChecks = healthChecks.filter(check => check.critical);
-  const criticalStatus = criticalChecks.length > 0 ?
-    criticalChecks.every(check => check.status === 'UP') ? 'UP' :
-    criticalChecks.some(check => check.status === 'DOWN') ? 'DOWN' : 'DEGRADED' : 'UNKNOWN';
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Spinner className="size-10" />
-      </div>
-    );
-  }
-
-  if (error && healthChecks.length === 0) {
-    return (
-      <Alert variant="destructive">
-        <ErrorIcon />
-        <AlertDescription>{error}</AlertDescription>
-        <AlertAction>
-          {/* Action d'appoint dans un bandeau : ghost. `text-current` reprend
-              l'encre du bandeau d'erreur. */}
-          <Button variant="ghost" size="sm" className="text-current" onClick={handleRefresh}>
-            {t('common.retry')}
-          </Button>
-        </AlertAction>
-      </Alert>
-    );
-  }
-
-  return (
-    <div>
-      {/* Vue d'ensemble — StatTile (carte plate hairline, valeur display) */}
-      <div className="grid grid-cols-12 gap-3 mb-[18px]">
-        <div className="col-span-12 min-[600px]:col-span-6">
-          <StatTile
-            icon={<HealthAndSafety />}
-            label="Statut Global"
-            value={overallStatus}
-            iconClassName={statusIconClass(overallStatus)}
-            hint={`${healthChecks.filter(check => check.status === 'UP').length} sur ${healthChecks.length} services opérationnels`}
-          />
-        </div>
-        <div className="col-span-12 min-[600px]:col-span-6">
-          <StatTile
-            icon={<Security />}
-            label="Services Critiques"
-            value={criticalStatus}
-            iconClassName={statusIconClass(criticalStatus)}
-            hint={`${criticalChecks.filter(check => check.status === 'UP').length} sur ${criticalChecks.length} services critiques opérationnels`}
-          />
-        </div>
-      </div>
-
-      {/* Métriques système — valeurs display tabular-nums + barres tokens */}
-      {systemMetrics && (
-        <Card className="mb-[18px]">
-          <CardContent>
-            <h6 className="text-sm font-semibold mb-[0.35em] text-foreground">
-              {t('health.systemMetrics')}
-            </h6>
-            <div className="grid grid-cols-12 gap-[18px]">
-              {([
-                { label: 'CPU', value: systemMetrics.cpuUsage, suffix: '%' },
-                { label: `Mémoire (${systemMetrics.heapUsedMb}/${systemMetrics.heapMaxMb} MB)`, value: systemMetrics.memoryUsage, suffix: '%' },
-                { label: 'Disque', value: systemMetrics.diskUsage, suffix: '%' },
-              ] as const).map((metric) => {
-                const barColor =
-                  metric.value > 80
-                    ? 'var(--bui-destructive)'
-                    : metric.value > 60
-                      ? 'var(--bui-warning)'
-                      : 'var(--bui-primary)';
-                return (
-                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2" key={metric.label}>
-                    <div className="text-center">
-                      <h6 className="text-sm font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
-                        {metric.value}{metric.suffix}
-                      </h6>
-                      <p className="text-xs text-muted-foreground">
-                        {metric.label}
-                      </p>
-                      {/* La teinte de la barre vient d'un seuil calcule a
-                          l'execution : elle transite par une variable CSS, une
-                          classe Tailwind ne pouvant pas naitre d'une valeur. */}
-                      <Progress
-                        value={Math.min(metric.value, 100)}
-                        className="mt-1.5 [&>[data-slot=progress-indicator]]:bg-(--bar)"
-                        style={{ '--bar': barColor } as React.CSSProperties}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-                <div className="text-center">
-                  <h6 className="text-sm font-semibold font-[family-name:var(--font-display)] tabular-nums text-success-ink">
-                    {formatUptime(systemMetrics.uptimeSeconds)}
-                  </h6>
-                  <p className="text-xs text-muted-foreground">
-                    Uptime JVM
-                  </p>
+  if (isLoading) return <MonitoringLoading label={t('monitoringDesign.loading')} />;
+  return <div className="bui-monitor">
+    <MonitoringIntro title={t('monitoringDesign.healthTitle')} description={t('monitoringDesign.healthDescription')}
+      status={statusLabel(state)} tone={toneFor(state)} aside={t('monitoringDesign.every30s')} />
+    {error && <Alert variant="destructive"><Info /><AlertDescription>
+      {t('monitoring.healthFetchError')}{data ? ' ' + t('monitoringDesign.staleValues') : ''}
+    </AlertDescription><AlertAction><Button size="sm" variant="outline" disabled={isFetching} onClick={() => void refetch()}>
+      {t('common.retry')}</Button></AlertAction></Alert>}
+    <StatTileRow compact>
+      <StatTile icon={<HealthAndSafety />} label={t('monitoringDesign.availableServices')} value={data ? up + ' / ' + checks.length : '—'} />
+      <StatTile icon={<Info />} label={t('monitoringDesign.toInspect')} value={data ? attention.length : '—'} />
+      <StatTile icon={<Security />} label={t('monitoringDesign.criticalIssues')} value={data ? criticalIssues.length : '—'} />
+      <StatTile icon={<Wifi />} label={t('monitoringDesign.unmeasured')} value={data ? unknown : '—'} />
+    </StatTileRow>
+    <div className="bui-monitor-columns">
+      <MonitoringPanel title={t('monitoringDesign.dependencies')} description={t('monitoringDesign.dependenciesHint')}
+        action={<FilterChipRow value={filter} onChange={setFilter} allLabel={t('monitoringDesign.allServices')}
+          allCount={checks.length} options={[{ value: 'attention', label: t('monitoringDesign.toInspect'),
+            color: 'var(--bui-warning-ink)', count: attention.length }]} />}>
+        {shown.length === 0 ? <EmptyState icon={<HealthAndSafety />} variant="transparent" title={t('monitoringDesign.noServiceMatches')}
+          description={checks.length ? t('monitoringDesign.changeFilters') : t('monitoringDesign.noHealthData')} /> :
+          shown.map(check => <details key={check.name} className="bui-monitor-service" data-state={check.status}>
+            <summary>
+              <span className="bui-monitor-service__icon">{CATEGORY_ICONS[check.category] ?? <Info size={20} />}</span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium break-words">{check.name}</span>
+                  {check.critical && <StatusChip tone="neutral" label={t('monitoringDesign.criticalService')} />}
+                </div>
+                <div className="bui-monitor-service__meta">
+                  <span>{t('monitoringDesign.categories.' + check.category, { defaultValue: check.category })}</span>
+                  <span className="tabular-nums">{check.status === 'UNKNOWN' ? '—' : monitoringNumber(check.responseTimeMs, activeIntlLocale()) + ' ms'}</span>
                 </div>
               </div>
+              <div className="bui-monitor-service__end">
+                <StatusChip dot tone={toneFor(check.status)} label={statusLabel(check.status)} />
+                <ExpandMore size={16} className="bui-monitor-service__chevron" />
+              </div>
+            </summary>
+            <div className="bui-monitor-service__detail">
+              <p className="font-mono">{check.details || t('monitoringDesign.noDetails')}</p>
+              {check.lastCheck && <p className="mt-2 tabular-nums">{t('health.lastCheck')}{' '}
+                {monitoringDate(check.lastCheck, activeIntlLocale())}</p>}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Vérifications détaillées */}
-      <Card>
-        <CardContent>
-          <h6 className="text-sm font-semibold mb-[0.35em] text-foreground">
-            Vérifications Détaillées ({healthChecks.length} services)
-          </h6>
-
-          <div>
-            {healthChecks.map((check, index) => {
-              const expanded = expandedChecks.has(check.name);
-              return (
-                <React.Fragment key={check.name}>
-                  <div className="flex items-start gap-3 py-2">
-                    <span className="inline-flex shrink-0 pt-0.5">
-                      {getStatusIcon(check.status)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium">
-                          {check.name}
-                        </span>
-                        <StatusChip tone={statusTone(check.status)} label={check.status} />
-                        <StatusChip tone="neutral" label={check.category} icon={getCategoryIcon(check.category)} />
-                        {check.critical && (
-                          <StatusChip tone="err" label="CRITIQUE" />
-                        )}
-                      </div>
-                      <div className="mt-1.5">
-                        <div className="flex items-center gap-3 flex-wrap mb-1.5">
-                          <p className="text-xs text-muted-foreground">
-                            <strong>{t('health.responseTime')}</strong>
-                            <StatusChip tone={responseTimeTone(check.responseTimeMs)} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
-                          </p>
-                          {check.lastCheck && (
-                            <p className="text-xs text-muted-foreground">
-                              <strong>{t('health.lastCheck')}</strong> {new Date(check.lastCheck).toLocaleTimeString()}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Collapsible pilote de l'exterieur : l'etat ouvert vit
-                            dans `expandedChecks`, le bouton de bascule est un
-                            frere et non un CollapsibleTrigger. */}
-                        <Collapsible open={expanded}>
-                          <CollapsibleContent>
-                            {/* Détails techniques : mono compact sur fond de champ */}
-                            <div className="mt-1.5 px-[9px] py-1.5 bg-field border border-solid border-field-line rounded-md">
-                              <p className="font-mono text-xs text-foreground break-words">
-                                {check.details}
-                              </p>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0"
-                      aria-label={expanded ? `Masquer les détails de ${check.name}` : `Afficher les détails de ${check.name}`}
-                      aria-expanded={expanded}
-                      onClick={() => toggleExpanded(check.name)}
-                    >
-                      {expanded ? <ExpandLess size={20} strokeWidth={1.75} /> : <ExpandMore size={20} strokeWidth={1.75} />}
-                    </Button>
-                  </div>
-                  {index < healthChecks.length - 1 && <Separator />}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+          </details>)}
+      </MonitoringPanel>
+      <div className="min-w-0 space-y-4">
+        <MonitoringPanel title={t('health.systemMetrics')} description={t('monitoringDesign.resourcesHint')}>
+          {metrics ? <>
+            {[
+              { label: t('monitoringDesign.cpu'), value: metrics.cpuUsage },
+              { label: t('monitoringDesign.memory'), value: metrics.memoryUsage,
+                hint: monitoringNumber(metrics.heapUsedMb) + ' / ' + monitoringNumber(metrics.heapMaxMb) + ' MB' },
+              { label: t('monitoringDesign.disk'), value: metrics.diskUsage },
+            ].map(metric => <div key={metric.label} className="bui-monitor-resource"
+              data-level={metric.value > 80 ? 'err' : metric.value > 60 ? 'warn' : 'neutral'}>
+              <div className="bui-monitor-resource__line">
+                <span className="text-muted-foreground">{metric.label}</span>
+                <span className="bui-monitor-resource__value">{monitoringNumber(metric.value)} %</span>
+              </div>
+              {Number.isFinite(metric.value) && <Progress aria-label={metric.label}
+                value={Math.max(0, Math.min(100, metric.value))} className="h-1.5" />}
+              {metric.hint && <p className="mt-2 text-xs text-muted-foreground tabular-nums">{metric.hint}</p>}
+            </div>)}
+            <div className="flex justify-between gap-3 py-4 text-sm">
+              <span className="text-muted-foreground">{t('monitoringDesign.processUptime')}</span>
+              <span className="font-medium tabular-nums">{uptime}</span>
+            </div>
+          </> : <p className="py-6 text-sm text-muted-foreground">{t('monitoringDesign.noResourceData')}</p>}
+        </MonitoringPanel>
+        <p className="bui-monitor-muted-note">{t('monitoringDesign.healthReadingHint')}</p>
+      </div>
     </div>
-  );
-};
-
-export default HealthChecks;
+  </div>;
+}

@@ -1,366 +1,131 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatusChip from './StatusChip';
-import { Alert as BuiAlert, AlertAction, AlertDescription, Button, Field, FieldLabel, Input } from './ui';
-import { Info as BuiInfo, TriangleAlert } from '../icons/glyphs';
-import { Spinner } from './ui';
-import {
-  Card,
-  CardContent,
-  NativeSelect,
-  NativeSelectOption,
-  Separator,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from './ui';
-import {
-  Info,
-  Warning,
-  Error as ErrorIcon,
-  CheckCircle,
-  Person,
-  Clear,
-  Refresh,
-  AdminPanelSettings,
-  Lock,
-  ReportProblem,
-  Visibility,
-  VpnKey,
-} from '../icons';
-import { monitoringApi } from '../services/api/monitoringApi';
-import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
-import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription, AlertAction, Button, Field, FieldLabel, NativeSelect, NativeSelectOption } from './ui';
+import { Info, Security, Lock, Refresh, Clear, CheckCircle, Warning, Visibility, AdminPanelSettings, VpnKey } from '../icons';
+import StatusChip, { type StatusTone } from './StatusChip';
+import StatTile from './baitly/StatTile';
+import StatTileRow from './baitly/StatTileRow';
 import PagePagination from './PagePagination';
+import EmptyState from './EmptyState';
+import { useScreenSearch } from './ScreenChrome';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import { monitoringApi } from '../services/api/monitoringApi';
 import { useTranslation } from '../hooks/useTranslation';
-
-/**
- * Chip -soft : encre `-ink` sur fond `-soft`.
- *
- * <p>Les tons sont choisis a l'execution depuis le type d'evenement renvoye par
- * l'API : les couleurs restent donc des VALEURS CSS, Tailwind n'emettant ses
- * classes qu'a la compilation. Les variables Baitly UI portent leur declinaison
- * claire ET sombre (theme/baitly-ui.css) ; l'encre `-ink` tient le 4,5:1 la ou la
- * teinte vive plafonne a ~2,2:1 sur une carte.</p>
- */
-const NEUTRAL_TOKEN = { fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' };
-
-// Type d'evenement → tokens semantiques
-const EVENT_TOKEN: Record<string, { fg: string; bg: string }> = {
-  LOGIN_SUCCESS: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
-  LOGIN_FAILURE: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
-  PERMISSION_DENIED: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-  SUSPICIOUS_ACTIVITY: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-  DATA_ACCESS: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
-  ADMIN_ACTION: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
-  SECRET_ROTATION: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
-};
-
-// Resultat → tokens semantiques (SUCCESS success, DENIED/ERROR destructive)
-const RESULT_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
-  DENIED: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-  ERROR: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-};
-
-interface AuditLogFilters {
-  eventType: string;
-  actorId: string;
-  result: string;
-}
+import { useAuth } from '../hooks/useAuth';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { MonitoringIntro, MonitoringPanel, MonitoringLoading, monitoringDate } from './monitoring/MonitoringSurface';
 
 const PAGE_SIZE = 15;
-
-// Icone decorative : teinte VIVE et non l'encre `-ink`, qui est reservee au texte.
-const getEventTypeIcon = (eventType: string) => {
-  switch (eventType) {
-    case 'LOGIN_SUCCESS':
-      return <span className="inline-flex text-success"><CheckCircle size={20} strokeWidth={1.75} /></span>;
-    case 'LOGIN_FAILURE':
-      return <span className="inline-flex text-warning"><Warning size={20} strokeWidth={1.75} /></span>;
-    case 'PERMISSION_DENIED':
-      return <span className="inline-flex text-destructive"><Lock size={20} strokeWidth={1.75} /></span>;
-    case 'DATA_ACCESS':
-      return <span className="inline-flex text-info"><Visibility size={20} strokeWidth={1.75} /></span>;
-    case 'ADMIN_ACTION':
-      return <span className="inline-flex text-info"><AdminPanelSettings size={20} strokeWidth={1.75} /></span>;
-    case 'SECRET_ROTATION':
-      return <span className="inline-flex text-info"><VpnKey size={20} strokeWidth={1.75} /></span>;
-    case 'SUSPICIOUS_ACTIVITY':
-      return <span className="inline-flex text-destructive"><ReportProblem size={20} strokeWidth={1.75} /></span>;
-    default:
-      return <span className="inline-flex text-info"><Info size={20} strokeWidth={1.75} /></span>;
-  }
+const EVENT_KEYS: Record<string, string> = {
+  LOGIN_SUCCESS: 'auditLog.loginSuccess', LOGIN_FAILURE: 'auditLog.loginFailure',
+  PERMISSION_DENIED: 'auditLog.accessDenied', DATA_ACCESS: 'auditLog.dataAccess',
+  ADMIN_ACTION: 'monitoringDesign.adminAction', SECRET_ROTATION: 'auditLog.secretRotation',
+  SUSPICIOUS_ACTIVITY: 'auditLog.suspicious',
 };
-
-const eventToken = (eventType: string) => EVENT_TOKEN[eventType] ?? NEUTRAL_TOKEN;
-const resultToken = (result: string) => RESULT_TOKEN[result?.toUpperCase()] ?? NEUTRAL_TOKEN;
-
-const formatEventType = (eventType: string) => {
-  return eventType.replace(/_/g, ' ');
+const EVENT_ICONS: Record<string, React.ReactNode> = {
+  LOGIN_SUCCESS: <CheckCircle size={18} />, LOGIN_FAILURE: <Warning size={18} />,
+  PERMISSION_DENIED: <Lock size={18} />, DATA_ACCESS: <Visibility size={18} />,
+  ADMIN_ACTION: <AdminPanelSettings size={18} />, SECRET_ROTATION: <VpnKey size={18} />,
 };
+const resultTone = (result: string): StatusTone =>
+  ['DENIED', 'ERROR'].includes(result.toUpperCase()) ? 'err' : result.toUpperCase() === 'SUCCESS' ? 'ok' : 'neutral';
 
-const AuditLogging: React.FC = () => {
+export default function AuditLogging() {
   const { t } = useTranslation();
-  const [page, setPage] = useState<AuditLogPage | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<AuditLogFilters>({
-    eventType: '',
-    actorId: '',
-    result: '',
-  });
-  const [currentPage, setCurrentPage] = useState(0);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { user } = useAuth();
+  const [eventType, setEventType] = useState('');
+  const [result, setResult] = useState('');
+  const [actorId, setActorId] = useState('');
+  const [page, setPage] = useState(0);
   const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
-
-  const fetchAuditLogs = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params: Record<string, string | number> = {
-        page: currentPage,
-        size: PAGE_SIZE,
-        sort: 'createdAt,desc',
-      };
-      if (filters.eventType) params.eventType = filters.eventType;
-      if (filters.actorId) params.actorId = filters.actorId;
-      if (filters.result) params.result = filters.result;
-
-      const data = await monitoringApi.getAuditLogs(params);
-      setPage(data);
-      setLastUpdate(new Date());
-    } catch (err) {
-      setError("Erreur lors de la récupération des logs d'audit");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, filters]);
-
+  useScreenSearch(actorId, value => { setActorId(value); setPage(0); }, t('monitoringDesign.searchActor'));
+  const query = useQuery({
+    queryKey: ['monitoring', 'audit', user?.id, user?.organizationId, page, eventType, result, actorId],
+    enabled: !!user, gcTime: 0,
+    queryFn: () => monitoringApi.getAuditLogs({ page, size: PAGE_SIZE, sort: 'createdAt,desc',
+      ...(eventType ? { eventType } : {}), ...(result ? { result } : {}), ...(actorId ? { actorId } : {}) }),
+  });
+  const { refetch, isFetching, dataUpdatedAt } = query;
   useEffect(() => {
-    fetchAuditLogs();
-  }, [fetchAuditLogs]);
-
-  const handleRefresh = useCallback(() => {
-    fetchAuditLogs();
-  }, [fetchAuditLogs]);
-
-  // Register page-header actions + last-update timestamp.
-  useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-1.5">
-        {loading && <Spinner className="size-4" />}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/* Le span porte la ref que Radix pose sur son enfant : Button est
-                une fonction, il n'en transmet pas. */}
-            <span className="inline-flex">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('auditLog.refresh')}
-                onClick={handleRefresh}
-              >
-                <Refresh size={20} strokeWidth={1.75} />
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{t('auditLog.refresh')}</TooltipContent>
-        </Tooltip>
-      </div>,
-    );
+    setHeaderActions(<Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+      <Refresh size={16} />{t('auditLog.refresh')}</Button>);
     return () => setHeaderActions(null);
-  }, [setHeaderActions, loading, handleRefresh]);
+  }, [setHeaderActions, refetch, isFetching, t]);
+  useEffect(() => { setHeaderLastUpdate(dataUpdatedAt ? new Date(dataUpdatedAt) : null); }, [setHeaderLastUpdate, dataUpdatedAt]);
+  const reset = () => { setEventType(''); setResult(''); setActorId(''); setPage(0); };
+  const logs = query.data?.content ?? [];
+  const failures = logs.filter(log => ['ERROR', 'DENIED'].includes(log.result?.toUpperCase())).length;
+  const eventLabel = (type: string) => EVENT_KEYS[type] ? t(EVENT_KEYS[type]) : type.replace(/_/g, ' ');
 
-  useEffect(() => {
-    setHeaderLastUpdate(lastUpdate);
-  }, [setHeaderLastUpdate, lastUpdate]);
-
-  const handleFilterChange = (field: keyof AuditLogFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({ eventType: '', actorId: '', result: '' });
-    setCurrentPage(0);
-  };
-
-  if (loading && !page) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Spinner className="size-10" />
+  if (query.isLoading && page === 0 && !eventType && !result && !actorId)
+    return <MonitoringLoading label={t('monitoringDesign.loading')} />;
+  return <div className="bui-monitor">
+    <MonitoringIntro title={t('monitoringDesign.auditTitle')} description={t('monitoringDesign.auditDescription')} />
+    {query.error && <Alert variant="destructive"><Info /><AlertDescription>{t('monitoringDesign.auditError')}</AlertDescription>
+      <AlertAction><Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>{t('common.retry')}</Button></AlertAction></Alert>}
+    <StatTileRow compact>
+      <StatTile icon={<Security />} label={t('monitoringDesign.filteredEvents')} value={query.data?.totalElements ?? '—'} />
+      <StatTile icon={<Info />} label={t('monitoringDesign.eventsOnPage')} value={query.data ? logs.length : '—'} />
+      <StatTile icon={<Lock />} label={t('monitoringDesign.failuresOnPage')} value={query.data ? failures : '—'} />
+    </StatTileRow>
+    <MonitoringPanel title={t('monitoringDesign.activityLog')} description={t('monitoringDesign.newestFirst')}>
+      <div className="bui-monitor-toolbar">
+        <Field className="w-full sm:w-64"><FieldLabel htmlFor="audit-event-type">{t('auditLog.eventType')}</FieldLabel>
+          <NativeSelect id="audit-event-type" className="w-full" value={eventType}
+            onChange={e => { setEventType(e.target.value); setPage(0); }}>
+            <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
+            {Object.keys(EVENT_KEYS).map(type => <NativeSelectOption key={type} value={type}>{eventLabel(type)}</NativeSelectOption>)}
+          </NativeSelect>
+        </Field>
+        <Field className="w-full sm:w-48"><FieldLabel htmlFor="audit-result">{t('auditLog.result')}</FieldLabel>
+          <NativeSelect id="audit-result" className="w-full" value={result} onChange={e => { setResult(e.target.value); setPage(0); }}>
+            <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
+            <NativeSelectOption value="SUCCESS">{t('auditLog.success')}</NativeSelectOption>
+            <NativeSelectOption value="DENIED">{t('auditLog.denied')}</NativeSelectOption>
+            <NativeSelectOption value="ERROR">{t('auditLog.error')}</NativeSelectOption>
+          </NativeSelect>
+        </Field>
+        <Button variant="ghost" size="sm" disabled={!eventType && !result && !actorId} onClick={reset}>
+          <Clear size={16} />{t('monitoringDesign.resetFilters')}</Button>
       </div>
-    );
-  }
-
-  if (error && !page) {
-    return (
-      <BuiAlert variant="destructive">
-        <TriangleAlert />
-        <AlertDescription>{error}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            {t('common.retry')}
-          </Button>
-        </AlertAction>
-      </BuiAlert>
-    );
-  }
-
-  const logs = page?.content ?? [];
-  const totalPages = page?.totalPages ?? 1;
-  const totalElements = page?.totalElements ?? 0;
-
-  return (
-    <div>
-      {/* Filtres */}
-      <Card className="mb-[18px]">
-        <CardContent>
-          <h6 className="text-sm font-semibold mt-0 mb-[0.35em] text-foreground">
-            Filtres
-          </h6>
-          <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <Field>
-                <FieldLabel htmlFor="audit-event-type">{t('auditLog.eventType')}</FieldLabel>
-                <NativeSelect
-                  id="audit-event-type"
-                  size="sm"
-                  className="w-full"
-                  value={filters.eventType}
-                  onChange={(e) => handleFilterChange('eventType', e.target.value)}
-                >
-                  <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
-                  <NativeSelectOption value="LOGIN_SUCCESS">{t('auditLog.loginSuccess')}</NativeSelectOption>
-                  <NativeSelectOption value="LOGIN_FAILURE">{t('auditLog.loginFailure')}</NativeSelectOption>
-                  <NativeSelectOption value="PERMISSION_DENIED">{t('auditLog.accessDenied')}</NativeSelectOption>
-                  <NativeSelectOption value="DATA_ACCESS">{t('auditLog.dataAccess')}</NativeSelectOption>
-                  <NativeSelectOption value="ADMIN_ACTION">Action admin</NativeSelectOption>
-                  <NativeSelectOption value="SECRET_ROTATION">{t('auditLog.secretRotation')}</NativeSelectOption>
-                  <NativeSelectOption value="SUSPICIOUS_ACTIVITY">{t('auditLog.suspicious')}</NativeSelectOption>
-                </NativeSelect>
-              </Field>
+      {query.isLoading ? <p role="status" className="py-8 text-sm text-muted-foreground">{t('monitoringDesign.loading')}</p>
+        : !query.error && logs.length === 0 ? <EmptyState icon={<Security />} title={t('auditLog.empty')}
+          variant="transparent" description={t('monitoringDesign.noAuditMatches')}
+          action={(eventType || result || actorId) ? <Button variant="outline" size="sm" onClick={reset}>{t('monitoringDesign.resetFilters')}</Button> : undefined} />
+        : <ol className="bui-monitor-events">{logs.map(log => <li key={log.id} className="bui-monitor-event">
+          <span className="bui-monitor-event__icon" style={{ color: resultTone(log.result ?? '') === 'err'
+            ? 'var(--bui-destructive-ink)' : 'var(--bui-muted-foreground)' }}>
+            {EVENT_ICONS[log.eventType] ?? <Info size={18} />}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 text-sm font-medium break-words">{log.action || eventLabel(log.eventType)}</p>
+              <time dateTime={log.timestamp} className="text-xs text-muted-foreground tabular-nums">
+                {monitoringDate(log.timestamp, activeIntlLocale())}</time>
             </div>
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <Field>
-                <FieldLabel htmlFor="audit-result">{t('auditLog.result')}</FieldLabel>
-                <NativeSelect
-                  id="audit-result"
-                  size="sm"
-                  className="w-full"
-                  value={filters.result}
-                  onChange={(e) => handleFilterChange('result', e.target.value)}
-                >
-                  <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
-                  <NativeSelectOption value="SUCCESS">{t('auditLog.success')}</NativeSelectOption>
-                  <NativeSelectOption value="DENIED">{t('auditLog.denied')}</NativeSelectOption>
-                  <NativeSelectOption value="ERROR">{t('auditLog.error')}</NativeSelectOption>
-                </NativeSelect>
-              </Field>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <StatusChip tone="neutral" label={eventLabel(log.eventType)} />
+              {log.result && <StatusChip tone={resultTone(log.result)}
+                label={t('monitoringDesign.results.' + log.result.toUpperCase(), { defaultValue: log.result })} />}
             </div>
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <Field>
-                <FieldLabel htmlFor="audit-actor-id">ID Acteur</FieldLabel>
-                <Input
-                  id="audit-actor-id"
-                  className="w-full"
-                  value={filters.actorId}
-                  onChange={(e) => handleFilterChange('actorId', e.target.value)}
-                />
-              </Field>
-            </div>
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                <Clear size={18} strokeWidth={1.75} />
-                Effacer
-              </Button>
-            </div>
+            <details className="mt-3">
+              <summary className="w-fit cursor-pointer rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                {t('monitoringDesign.eventDetails')}</summary>
+              <div className="bui-monitor-event__metadata">
+                {log.details && <p className="w-full text-foreground">{log.details}</p>}
+                {log.actorEmail && <p><span className="font-medium">{t('monitoringDesign.actor')}{' : '}</span>{log.actorEmail}</p>}
+                {log.actorIp && <p className="font-mono">IP : {log.actorIp}</p>}
+                {!log.details && !log.actorEmail && !log.actorIp && <p>{t('monitoringDesign.noDetails')}</p>}
+              </div>
+            </details>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Logs */}
-      <Card>
-        <CardContent>
-          <div className="flex justify-between items-center mb-3">
-            <h6 className="text-sm font-semibold m-0 text-foreground">
-              Logs d'audit ({totalElements} entrées)
-            </h6>
-            {totalPages > 1 && (
-              <StatusChip tone="accent" label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
-            )}
-          </div>
-
-          {logs.length === 0 ? (
-            <BuiAlert variant="info">
-              <BuiInfo />
-              <AlertDescription>{t('auditLog.empty')}</AlertDescription>
-            </BuiAlert>
-          ) : (
-            <div className="flex flex-col">
-              {logs.map((log, index) => (
-                <React.Fragment key={log.id}>
-                  <div className="flex items-start gap-2 py-1.5">
-                    <span className="flex w-9 shrink-0 items-center justify-start pt-0.5">
-                      {getEventTypeIcon(log.eventType)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-medium">
-                          {log.action || formatEventType(log.eventType)}
-                        </span>
-                        <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
-                        {log.result && (
-                          <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
-                        )}
-                      </div>
-                      <div className="mt-1.5">
-                        {log.details && (
-                          <p className="text-xs mt-0 mb-[0.35em] text-foreground">
-                            {log.details}
-                          </p>
-                        )}
-                        {/* Meta technique : mono compact sur fond de champ */}
-                        <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-field border border-solid border-field-line rounded-md">
-                          {log.actorEmail && (
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              {log.actorEmail}
-                            </span>
-                          )}
-                          {log.actorIp && (
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              IP {log.actorIp}
-                            </span>
-                          )}
-                          {log.timestamp && (
-                            <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-                              {new Date(log.timestamp).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {index < logs.length - 1 && <Separator />}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-[18px]">
-              <PagePagination
-                totalPages={totalPages}
-                page={currentPage}
-                onPageChange={(value) => setCurrentPage(value)}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default AuditLogging;
+        </li>)}</ol>}
+      {!!query.data?.totalElements && <div className="border-t border-border py-4">
+        <PagePagination count={query.data.totalElements} totalPages={query.data.totalPages}
+          page={page} rowsPerPage={PAGE_SIZE} onPageChange={setPage} hideOnSinglePage={false}
+          labels={{ previous: t('pagination.previous'), next: t('pagination.next'),
+            range: (from, to, count) => t('pagination.range', { from, to, count }) }} />
+      </div>}
+    </MonitoringPanel>
+  </div>;
+}

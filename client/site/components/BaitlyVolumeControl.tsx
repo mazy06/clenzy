@@ -13,30 +13,21 @@ export default function BaitlyVolumeControl({
   const m = BAITLY_LOYALTY_MESSAGES[language];
   return (
     <div className="bp-volume-control">
-      <label className="bp-property-control" htmlFor="bp-properties">
-        <span>
-          {m.properties}
-          <output htmlFor="bp-properties" aria-hidden="true">
-            {properties}
-          </output>
-        </span>
-        <input
-          id="bp-properties"
-          type="range"
-          min="1"
-          max="49"
-          value={properties}
-          onChange={(event) => onChange(Number(event.target.value))}
-        />
+      <label className="bp-control-label" htmlFor="bp-properties">
+        {m.properties}
+        <output htmlFor="bp-properties" aria-hidden="true">
+          {properties}
+        </output>
       </label>
-      <p className="bp-volume-label" id="bp-volume-label">
-        {m.volumeTitle}
-      </p>
-      <div
-        className="bp-volume-tiers"
-        role="group"
-        aria-labelledby="bp-volume-label"
-      >
+      <input
+        id="bp-properties"
+        type="range"
+        min="1"
+        max="49"
+        value={properties}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <div className="bp-tier-row" role="group" aria-label={m.volumeTitle}>
         {BAITLY_VOLUME_TIERS.map((tier) => (
           <button
             key={tier.start}
@@ -55,6 +46,7 @@ export default function BaitlyVolumeControl({
           </button>
         ))}
       </div>
+      <p className="bp-control-hint">{m.volumeHint}</p>
     </div>
   );
 }

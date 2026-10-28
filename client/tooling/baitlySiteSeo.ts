@@ -126,6 +126,9 @@ export function metadataCatalog(catalog: DiscoveryCatalog): MetadataCatalog {
                     '@id': ORIGIN + '/#organization',
                     name: 'Baitly',
                     url: ORIGIN + '/',
+                    logo: ORIGIN + '/baitly-logo-512.png',
+                    description: HOME_SEARCH[language].description,
+                    areaServed: ['FR', 'MA', 'SA'],
                   },
                   {
                     '@context': 'https://schema.org',

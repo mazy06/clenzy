@@ -6,10 +6,17 @@ import {
   BAITLY_COMPARISON_ROUTES,
   BAITLY_READINESS_MESSAGES,
 } from "../lib/messages/baitlyReadiness";
+import {
+  BAITLY_ALTERNATIVE_PAGES,
+  BAITLY_ALTERNATIVE_VENDORS,
+  alternativePath,
+} from "../data/baitlyAlternatives";
+import { BAITLY_ALTERNATIVE_MESSAGES } from "../lib/messages/baitlyAlternatives";
 
 export default function ComparePage() {
   const { language } = useSiteLanguage();
   const m = BAITLY_READINESS_MESSAGES[language].compare;
+  const alternatives = BAITLY_ALTERNATIVE_MESSAGES[language];
   return (
     <div className="baitly-readiness site-shell">
       <section className="baitly-compare-hero">
@@ -52,6 +59,27 @@ export default function ComparePage() {
             </li>
           ))}
         </ol>
+      </section>
+      <section
+        className="baitly-compare-criteria"
+        aria-labelledby="comparison-vendors-title"
+      >
+        <div className="baitly-proof-heading">
+          <h2 id="comparison-vendors-title">{alternatives.compareTitle}</h2>
+          <p>{alternatives.compareCopy}</p>
+        </div>
+        <div className="baitly-readiness-actions">
+          {BAITLY_ALTERNATIVE_PAGES.map((slug) => (
+            <Link
+              key={slug}
+              className="baitly-text-link"
+              to={`${alternativePath(slug)}?lang=${language}`}
+            >
+              {alternatives.eyebrow} {BAITLY_ALTERNATIVE_VENDORS[slug].name}
+              <ArrowRightIcon size={17} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
       </section>
       <section className="baitly-compare-next">
         <h2>{m.closingTitle}</h2>

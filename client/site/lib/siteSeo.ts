@@ -23,6 +23,9 @@ export const isIndexablePath = (path: string) =>
     '/prestataires/inscription',
     '/prestataires/activation',
     '/campagnes/reponse',
+    // Sign-up form for the pre-launch: a conversion step, not a search answer.
+    '/bientot-disponible',
+    '/pre-lancement',
   ].includes(path);
 
 export const HOME_SEARCH = {
@@ -97,6 +100,26 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     },
     '/comparer': {
       title: 'Comparer les logiciels de gestion locative saisonnière | Baitly',
+    },
+    '/alternative-guesty': {
+      title: 'Alternative à Guesty : comparatif et tarifs | Baitly',
+      description:
+        'Vous comparez Guesty ? Ce que l’éditeur publie sur ses tarifs, l’offre de Baitly pour la France, le Maroc et l’Arabie saoudite, et les questions à poser.',
+    },
+    '/alternative-lodgify': {
+      title: 'Alternative à Lodgify : comparatif et tarifs | Baitly',
+      description:
+        'Vous comparez Lodgify ? Ce que l’éditeur publie sur ses tarifs, l’offre de Baitly pour la France, le Maroc et l’Arabie saoudite, et les questions à poser.',
+    },
+    '/alternative-smoobu': {
+      title: 'Alternative à Smoobu : comparatif et tarifs | Baitly',
+      description:
+        'Vous comparez Smoobu ? Ce que l’éditeur publie sur ses tarifs, l’offre de Baitly pour la France, le Maroc et l’Arabie saoudite, et les questions à poser.',
+    },
+    '/alternative-hostaway': {
+      title: 'Alternative à Hostaway : comparatif et tarifs | Baitly',
+      description:
+        'Vous comparez Hostaway ? Ce que l’éditeur publie sur ses tarifs, l’offre de Baitly pour la France, le Maroc et l’Arabie saoudite, et les questions à poser.',
     },
     '/ressources/calculateur': {
       title: 'Calculateur de rentabilité location saisonnière | Baitly',
@@ -183,6 +206,26 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     '/comparer': {
       title: 'Compare vacation rental management software | Baitly',
     },
+    '/alternative-guesty': {
+      title: 'Guesty alternative: comparison and pricing | Baitly',
+      description:
+        'Comparing Guesty? What the vendor publishes about its pricing, what Baitly offers in France, Morocco and Saudi Arabia, and the questions to ask.',
+    },
+    '/alternative-lodgify': {
+      title: 'Lodgify alternative: comparison and pricing | Baitly',
+      description:
+        'Comparing Lodgify? What the vendor publishes about its pricing, what Baitly offers in France, Morocco and Saudi Arabia, and the questions to ask.',
+    },
+    '/alternative-smoobu': {
+      title: 'Smoobu alternative: comparison and pricing | Baitly',
+      description:
+        'Comparing Smoobu? What the vendor publishes about its pricing, what Baitly offers in France, Morocco and Saudi Arabia, and the questions to ask.',
+    },
+    '/alternative-hostaway': {
+      title: 'Hostaway alternative: comparison and pricing | Baitly',
+      description:
+        'Comparing Hostaway? What the vendor publishes about its pricing, what Baitly offers in France, Morocco and Saudi Arabia, and the questions to ask.',
+    },
     '/ressources/calculateur': {
       title: 'Vacation rental profitability calculator | Baitly',
     },
@@ -265,6 +308,26 @@ export const PAGE_SEARCH: Record<SiteLanguage, Record<string, SearchSnippet>> = 
     },
     '/comparer': {
       title: 'مقارنة برامج إدارة الإيجارات السياحية | Baitly',
+    },
+    '/alternative-guesty': {
+      title: 'بديل لـ Guesty: مقارنة وأسعار | Baitly',
+      description:
+        'تقارن Guesty؟ ما تنشره الشركة عن أسعارها، وما يقدّمه بيتلي في السعودية والمغرب وفرنسا، والأسئلة التي تطرحها.',
+    },
+    '/alternative-lodgify': {
+      title: 'بديل لـ Lodgify: مقارنة وأسعار | Baitly',
+      description:
+        'تقارن Lodgify؟ ما تنشره الشركة عن أسعارها، وما يقدّمه بيتلي في السعودية والمغرب وفرنسا، والأسئلة التي تطرحها.',
+    },
+    '/alternative-smoobu': {
+      title: 'بديل لـ Smoobu: مقارنة وأسعار | Baitly',
+      description:
+        'تقارن Smoobu؟ ما تنشره الشركة عن أسعارها، وما يقدّمه بيتلي في السعودية والمغرب وفرنسا، والأسئلة التي تطرحها.',
+    },
+    '/alternative-hostaway': {
+      title: 'بديل لـ Hostaway: مقارنة وأسعار | Baitly',
+      description:
+        'تقارن Hostaway؟ ما تنشره الشركة عن أسعارها، وما يقدّمه بيتلي في السعودية والمغرب وفرنسا، والأسئلة التي تطرحها.',
     },
     '/ressources/calculateur': {
       title: 'حاسبة ربحية الإيجار السياحي | Baitly',
