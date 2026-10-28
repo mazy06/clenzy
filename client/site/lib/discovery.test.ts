@@ -46,6 +46,13 @@ describe('Baitly public discovery build', () => {
       expect(markdown.length).toBeGreaterThan(100);
     }
   });
+  it('lists public pages in llms.txt by their search title and description', () => {
+    const llms = discoveryArtifacts(routes, robots, catalog).assets.get('llms.txt')!;
+    expect(llms).toContain(
+      '- [PMS et channel manager Airbnb, Booking.com](https://baitly.fr/produit/pms-channel-manager): Synchronisez',
+    );
+    expect(llms).not.toContain('[Tous vos calendriers, une seule vérité.]');
+  });
   it('describes the published recordings with consistent watch, thumbnail and media URLs', () => {
     const { assets } = discoveryArtifacts(routes, robots, catalog);
     const doc = new DOMParser().parseFromString(

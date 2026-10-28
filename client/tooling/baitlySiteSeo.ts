@@ -28,6 +28,7 @@ import {
 } from '../site/lib/siteSeo';
 import { legalArticleImage } from '../site/data/legal/articleImages';
 import { conciergeMetadata } from '../site/lib/baitlyConciergeMetadata';
+import { siteStructuredData } from '../site/lib/siteStructuredData';
 import {
   legalStaticHtml,
   legalStructuredData,
@@ -102,7 +103,10 @@ export function metadataCatalog(catalog: DiscoveryCatalog): MetadataCatalog {
               ? HOME_SEARCH[language].title
               : (search?.title ??
                 countryTitle ??
-                `${title.replace(/^Baitly · /, '')} | Baitly`),
+                (episode
+                  ? // An episode title alone ("Annulations, avis…") does not say what it is about.
+                    `${title} · ${{ fr: 'Formation location saisonnière', en: 'Vacation rental training', ar: 'تدريب الإيجار السياحي' }[language]} | Baitly`
+                  : `${title.replace(/^Baitly · /, '')} | Baitly`)),
           description:
             path === '/'
               ? HOME_SEARCH[language].description
@@ -154,7 +158,15 @@ export function metadataCatalog(catalog: DiscoveryCatalog): MetadataCatalog {
               }
             : editorialData
               ? { structuredData: editorialData }
-              : {}),
+              : isIndexablePath(path) && !episode && !country
+                ? {
+                    structuredData: siteStructuredData(
+                      path,
+                      language,
+                      search?.title ?? `${title.replace(/^Baitly · /, '')} | Baitly`,
+                    ),
+                  }
+                : {}),
           ...(episode
             ? { video: academyVideoMetadata(episode, language, ORIGIN) }
             : {}),
