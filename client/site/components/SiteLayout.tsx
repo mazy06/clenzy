@@ -330,7 +330,6 @@ function SiteFooter() {
               label={LANGUAGE_LABEL[language]}
               className="mt-5"
             />
-            <GooglePreferredSourceBadge language={language} className="mt-4" />
           </div>
           {footerColumns(language).map((column) => (
             <div key={column.title}>
@@ -398,6 +397,7 @@ function SiteFooter() {
                 className="block h-[22px] w-[78px]"
               />
             </a>
+            <GooglePreferredSourceBadge language={language} compact />
           </span>
         </div>
       </div>

@@ -10,9 +10,9 @@ import { SITE_ORIGIN } from '../lib/siteSeo';
 export const GOOGLE_PREFERRED_SOURCE_URL = `https://www.google.com/preferences/source?q=${new URL(SITE_ORIGIN).hostname}`;
 
 /** Google's multicolour « G », inlined so the badge loads nothing from Google. */
-function GoogleMark() {
+function GoogleMark({ size = 20 }: { size?: number }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
       <path
         fill="#EA4335"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
@@ -35,12 +35,29 @@ function GoogleMark() {
 
 export default function GooglePreferredSourceBadge({
   language,
+  compact = false,
   className = '',
 }: {
   language: SiteLanguage;
+  /** One-line pill sized to sit in a row of small links (site footer). */
+  compact?: boolean;
   className?: string;
 }) {
   const m = LAYOUT_MESSAGES[language].footer.preferredSource;
+  if (compact)
+    return (
+      <a
+        href={GOOGLE_PREFERRED_SOURCE_URL}
+        target="_blank"
+        rel="noopener"
+        title={`${m.eyebrow} · ${m.action}`}
+        aria-label={`${m.eyebrow} · ${m.action}`}
+        className={`inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card ps-2 pe-3 text-xs font-medium text-foreground no-underline transition-[border-color,background-color] duration-200 ease-out hover:border-foreground/30 hover:bg-muted/60 ${className}`}
+      >
+        <GoogleMark size={14} />
+        {m.action}
+      </a>
+    );
   return (
     <a
       href={GOOGLE_PREFERRED_SOURCE_URL}
