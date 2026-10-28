@@ -23,6 +23,9 @@ export const isIndexablePath = (path: string) =>
     '/prestataires/inscription',
     '/prestataires/activation',
     '/campagnes/reponse',
+    // Sign-up form for the pre-launch: a conversion step, not a search answer.
+    '/bientot-disponible',
+    '/pre-lancement',
   ].includes(path);
 
 export const HOME_SEARCH = {
