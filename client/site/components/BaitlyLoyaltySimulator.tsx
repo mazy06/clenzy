@@ -1,27 +1,17 @@
 import { useSiteMoney } from './SiteMoney';
 import { useSiteCurrency } from '../lib/siteCurrency';
-import type { CSSProperties } from 'react';
-import {
-  PauseIcon,
-  PlayIcon,
-  RotateCcwIcon,
-  ArrowDownRightIcon,
-  PlusIcon,
-} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRICING_MESSAGES } from '../lib/messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import {
   BAITLY_LOYALTY_STAGES,
   loyaltyStage,
-  loyaltyUnitPrice,
   loyaltyFirstYear,
   loyaltyQuote,
   BAITLY_PRICING_MARKETS,
   type BaitlyMarket,
   type BaitlyPlan,
 } from '../data/baitlyLoyaltyPricing';
-import { useBaitlyLoyaltyMotion } from './useBaitlyLoyaltyMotion';
 import BaitlyVolumeControl from './BaitlyVolumeControl';
 
 export interface LoyaltySelection {
@@ -38,6 +28,9 @@ export interface LoyaltySimulatorProps {
   onMonth: (month: number) => void;
 }
 
+const percent = (discount: number) => (discount ? `−${discount} %` : '0 %');
+
+/** Settings on one side, the bill they produce on the other: one screen, no scroll. */
 export default function BaitlyLoyaltySimulator({
   selection,
   onMarket,
@@ -51,18 +44,16 @@ export default function BaitlyLoyaltySimulator({
   const plans = PRICING_MESSAGES[language].plans;
   const { market, plan, properties, month } = selection;
   const stageIndex = loyaltyStage(month);
-  const motion = useBaitlyLoyaltyMotion(month, onMonth);
+  const loyaltyDiscount = BAITLY_LOYALTY_STAGES[stageIndex].discount;
   const money = useSiteMoney(
     BAITLY_PRICING_MARKETS[market].currency,
     language,
     BAITLY_PRICING_MARKETS[market].currency,
   );
   const quote = loyaltyQuote(market, plan, month, properties);
-  const total = quote.total;
   const year = loyaltyFirstYear(market, plan, properties);
   return (
     <section
-      ref={motion.ref}
       className="bp-simulator"
       onPointerDownCapture={currency.pause}
       onFocusCapture={currency.pause}
@@ -70,35 +61,23 @@ export default function BaitlyLoyaltySimulator({
     >
       <div className="bp-simulator-heading">
         <h2 id="bp-simulator-title">{m.simulator}</h2>
-        <ArrowDownRightIcon aria-hidden="true" />
-      </div>
-      <div className="bp-config">
-        <fieldset>
-          <legend>{m.planLabel}</legend>
-          <div className="bp-plan-switch">
+        <div className="bp-config">
+          <div className="bp-plan-switch" role="group" aria-label={m.planLabel}>
             {(['essential', 'pro'] as const).map((id, i) => (
               <button
                 key={id}
                 type="button"
                 aria-pressed={plan === id}
-                onClick={() => {
-                  motion.selectMonth(month);
-                  onPlan(id);
-                }}
+                onClick={() => onPlan(id)}
               >
                 {plans[i].name}
               </button>
             ))}
           </div>
-        </fieldset>
-        <label>
-          {m.marketLabel}
           <select
+            aria-label={m.marketLabel}
             value={market}
-            onChange={(event) => {
-              motion.selectMonth(month);
-              onMarket(event.target.value as BaitlyMarket);
-            }}
+            onChange={(event) => onMarket(event.target.value as BaitlyMarket)}
           >
             {Object.keys(BAITLY_PRICING_MARKETS).map((id) => (
               <option key={id} value={id}>
@@ -106,153 +85,97 @@ export default function BaitlyLoyaltySimulator({
               </option>
             ))}
           </select>
-        </label>
+        </div>
       </div>
-      <BaitlyVolumeControl
-        properties={properties}
-        onChange={(count) => {
-          motion.selectMonth(month);
-          onProperties(count);
-        }}
-      />
-      <div className="bp-stages" role="group" aria-label={m.phase}>
-        {BAITLY_LOYALTY_STAGES.map((stage, i) => (
-          <button
-            className="bp-stage"
-            type="button"
-            key={stage.start}
-            aria-pressed={stageIndex === i}
-            onClick={() => motion.selectMonth(stage.start)}
-            style={
-              {
-                '--bp-tier': (100 - stage.discount) / 100,
-                '--bp-delay': `${i * 100}ms`,
-              } as CSSProperties
-            }
+      <div className="bp-sim-body">
+        <div className="bp-sim-inputs">
+          <BaitlyVolumeControl
+            properties={properties}
+            onChange={onProperties}
+          />
+          <div className="bp-seniority">
+            <p className="bp-control-label" id="bp-seniority-label">
+              {m.seniority}
+            </p>
+            <div
+              className="bp-tier-row"
+              role="group"
+              aria-labelledby="bp-seniority-label"
+            >
+              {BAITLY_LOYALTY_STAGES.map((stage, i) => (
+                <button
+                  key={stage.start}
+                  type="button"
+                  aria-label={`${m.periods[i]} : ${percent(stage.discount)}`}
+                  aria-pressed={stageIndex === i}
+                  data-applied={i <= stageIndex}
+                  onClick={() => onMonth(stage.start)}
+                >
+                  <span>{m.periods[i]}</span>
+                  <strong>{percent(stage.discount)}</strong>
+                </button>
+              ))}
+            </div>
+            <p className="bp-control-hint">{m.stageCopy[stageIndex]}</p>
+          </div>
+        </div>
+        <div className="bp-sim-result">
+          <div
+            className="bp-monthly"
+            role="status"
+            aria-live={currency.playing ? 'off' : 'polite'}
+            aria-atomic="true"
           >
-            <span className="bp-stage-top">
-              {stage.discount ? `−${stage.discount} %` : m.base}
-            </span>
-            <span className="bp-stage-track">
-              <span className="bp-stage-fill" />
-              <strong>
-                {money(loyaltyUnitPrice(market, plan, stage.start, properties))}
-              </strong>
-            </span>
-            <span className="bp-stage-label">{m.milestones[i]}</span>
-          </button>
-        ))}
-      </div>
-      <p className="bp-chart-caption">{m.averageUnit}</p>
-      <div className="bp-timeline-control">
-        <label htmlFor="bp-month">
-          {m.month} <strong>{month}</strong>
-        </label>
-        <input
-          id="bp-month"
-          type="range"
-          min="1"
-          max="18"
-          value={month}
-          onChange={(event) => motion.selectMonth(Number(event.target.value))}
-          aria-valuetext={`${m.month} ${month}, ${m.periods[stageIndex]}`}
-        />
-        {!motion.reduced && (
-          <button
-            type="button"
-            className="bp-motion-toggle"
-            onClick={motion.toggle}
-            aria-label={
-              motion.playing ? m.pause : stageIndex === 3 ? m.replay : m.play
-            }
-          >
-            {motion.playing ? (
-              <PauseIcon />
-            ) : stageIndex === 3 ? (
-              <RotateCcwIcon />
-            ) : (
-              <PlayIcon />
-            )}
-          </button>
-        )}
-      </div>
-      <div
-        className="bp-monthly"
-        role="status"
-        aria-live={currency.playing ? 'off' : 'polite'}
-        aria-atomic="true"
-      >
-        <div>
-          <span>{m.monthly}</span>
-          <p>
-            {m.periods[stageIndex]} · {properties}{' '}
-            {m.propertyWords[properties === 1 ? 0 : 1]}
-          </p>
-        </div>
-        <div>
-          <strong key={`${market}-${total}`} data-testid="loyalty-monthly">
-            {money(total)}
-          </strong>
-          <span>{m.tax}</span>
+            <span>{m.monthly}</span>
+            <strong
+              key={`${market}-${quote.total}`}
+              data-testid="loyalty-monthly"
+            >
+              {money(quote.total)}
+            </strong>
+            <p>
+              {m.tax} · {properties} {m.propertyWords[properties === 1 ? 0 : 1]}{' '}
+              · {m.periods[stageIndex]}
+            </p>
+          </div>
+          <dl className="bp-calculation-lines">
+            <div>
+              <dt>{m.beforeDiscounts}</dt>
+              <dd>{money(quote.baseTotal)}</dd>
+            </div>
+            <div className="bp-calculation-saving">
+              <dt>{m.volumeSavings}</dt>
+              <dd>
+                {quote.volumeSavings > 0 && '−'}
+                {money(quote.volumeSavings)}
+              </dd>
+            </div>
+            <div className="bp-calculation-saving">
+              <dt>
+                {m.loyaltySavings} ({percent(loyaltyDiscount)})
+              </dt>
+              <dd>
+                {quote.loyaltySavings > 0 && '−'}
+                {money(quote.loyaltySavings)}
+              </dd>
+            </div>
+            <div className="bp-calculation-total">
+              <dt>{m.averageUnit}</dt>
+              <dd>{money(quote.average)}</dd>
+            </div>
+          </dl>
+          <dl className="bp-year-summary">
+            <div>
+              <dt>{m.firstYear}</dt>
+              <dd data-testid="loyalty-year">{money(year.total)}</dd>
+            </div>
+            <div>
+              <dt>{m.savings}</dt>
+              <dd>{money(year.savings)}</dd>
+            </div>
+          </dl>
         </div>
       </div>
-      <details className="bp-calculation">
-        <summary>
-          {m.calculation}
-          <PlusIcon aria-hidden="true" />
-        </summary>
-        <p className="bp-fine-print">{m.volumeHint}</p>
-        <dl className="bp-calculation-lines">
-          <div>
-            <dt>{m.beforeDiscounts}</dt>
-            <dd>{money(quote.baseTotal)}</dd>
-          </div>
-          <div className="bp-calculation-saving">
-            <dt>{m.volumeSavings}</dt>
-            <dd>−{money(quote.volumeSavings)}</dd>
-          </div>
-          <div>
-            <dt>{m.volumeSubtotal}</dt>
-            <dd>{money(quote.volumeTotal)}</dd>
-          </div>
-          <div className="bp-calculation-saving">
-            <dt>
-              {m.loyaltySavings} (−{BAITLY_LOYALTY_STAGES[stageIndex].discount}{' '}
-              %)
-            </dt>
-            <dd>−{money(quote.loyaltySavings)}</dd>
-          </div>
-          <div className="bp-calculation-total">
-            <dt>{m.monthly}</dt>
-            <dd>{money(total)}</dd>
-          </div>
-        </dl>
-        <p className="bp-volume-label">{m.volumeTitle}</p>
-        <dl className="bp-calculation-lines bp-band-details">
-          {quote.bands
-            .filter((band) => band.count > 0)
-            .map((band) => (
-              <div key={band.start}>
-                <dt>
-                  {band.count} × {money(band.unitCents / 100)}{' '}
-                  <span>(−{band.discount} %)</span>
-                </dt>
-                <dd>{money(band.totalCents / 100)}</dd>
-              </div>
-            ))}
-        </dl>
-      </details>
-      <dl className="bp-year-summary">
-        <div>
-          <dt>{m.firstYear}</dt>
-          <dd data-testid="loyalty-year">{money(year.total)}</dd>
-        </div>
-        <div>
-          <dt>{m.savings}</dt>
-          <dd>{money(year.savings)}</dd>
-        </div>
-      </dl>
-      <p className="bp-fine-print">{m.savingsNote}</p>
     </section>
   );
 }
